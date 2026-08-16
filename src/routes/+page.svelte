@@ -78,7 +78,12 @@
 </script>
 
 <main class="container">
-  <h1>my-companion</h1>
+  <div class="header">
+    <h1>my-companion</h1>
+    {#if appVersion}
+      <button class="version" onclick={() => (activeSection = "history")}>v{appVersion}</button>
+    {/if}
+  </div>
 
   <nav class="top-nav">
     <button class:active={activeSection === "accounts"} onclick={() => (activeSection = "accounts")}>
@@ -133,12 +138,6 @@
   {:else}
     <ChangelogList />
   {/if}
-
-  {#if appVersion}
-    <footer class="footer">
-      <button class="version" onclick={() => (activeSection = "history")}>v{appVersion}</button>
-    </footer>
-  {/if}
 </main>
 
 {#if formOpen}
@@ -168,9 +167,16 @@
     padding: 3rem 1.5rem;
   }
 
-  h1 {
-    margin-top: 0;
+  .header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
     margin-bottom: 1.2rem;
+  }
+
+  h1 {
+    margin: 0;
   }
 
   .top-nav {
@@ -238,12 +244,6 @@
     opacity: 0.6;
   }
 
-  .footer {
-    display: flex;
-    justify-content: center;
-    margin-top: 2.5rem;
-  }
-
   .version {
     background: transparent;
     box-shadow: none;
@@ -251,6 +251,7 @@
     font-size: 0.8rem;
     opacity: 0.5;
     padding: 0.3em 0.6em;
+    flex-shrink: 0;
   }
 
   .version:hover {
