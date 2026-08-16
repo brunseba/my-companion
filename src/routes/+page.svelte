@@ -8,13 +8,14 @@
   import { listAccounts, deleteAccount } from "$lib/accounts";
   import { toast } from "$lib/toast.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
+  import Overview from "$lib/components/Overview.svelte";
   import AccountCard from "$lib/components/AccountCard.svelte";
   import AccountForm from "$lib/components/AccountForm.svelte";
   import ChangelogList from "$lib/components/ChangelogList.svelte";
   import Button from "$lib/components/ui/Button.svelte";
   import Skeleton from "$lib/components/ui/Skeleton.svelte";
 
-  type Section = "accounts" | "history";
+  type Section = "overview" | "accounts" | "history";
 
   const categories: AccountCategory[] = ["ai", "csp", "k8s", "scm", "tracker", "oidc"];
 
@@ -91,6 +92,7 @@
     {activeSection}
     {activeCategory}
     {appVersion}
+    onSelectOverview={() => (activeSection = "overview")}
     onSelectAccounts={() => (activeSection = "accounts")}
     onSelectCategory={(category) => {
       activeSection = "accounts";
@@ -100,7 +102,19 @@
   />
 
   <main class="content">
-    {#if activeSection === "accounts"}
+    {#if activeSection === "overview"}
+      <div class="content-header">
+        <h1>Overview</h1>
+      </div>
+      <Overview
+        {accounts}
+        {categories}
+        onSelectCategory={(category) => {
+          activeSection = "accounts";
+          activeCategory = category;
+        }}
+      />
+    {:else if activeSection === "accounts"}
       <div class="content-header">
         <h1>{CATEGORY_LABELS[activeCategory]}</h1>
         <Button variant="primary" onclick={openAdd}><Plus size={16} /> Add account</Button>

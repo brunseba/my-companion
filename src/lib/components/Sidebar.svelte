@@ -5,9 +5,10 @@
 
   interface Props {
     categories: AccountCategory[];
-    activeSection: "accounts" | "history";
+    activeSection: "overview" | "accounts" | "history";
     activeCategory: AccountCategory;
     appVersion: string;
+    onSelectOverview: () => void;
     onSelectAccounts: () => void;
     onSelectCategory: (category: AccountCategory) => void;
     onSelectHistory: () => void;
@@ -18,6 +19,7 @@
     activeSection,
     activeCategory,
     appVersion,
+    onSelectOverview,
     onSelectAccounts,
     onSelectCategory,
     onSelectHistory,
@@ -25,7 +27,9 @@
 </script>
 
 <aside class="sidebar">
-  <div class="brand">my-companion</div>
+  <button class="brand" class:active={activeSection === "overview"} onclick={onSelectOverview}>
+    my-companion
+  </button>
 
   <nav>
     <button class="section" class:active={activeSection === "accounts"} onclick={onSelectAccounts}>
@@ -73,10 +77,30 @@
   }
 
   .brand {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
     font-weight: 600;
     font-size: 0.95rem;
-    padding: var(--space-2) var(--space-2) var(--space-4);
     letter-spacing: -0.01em;
+    padding: var(--space-2);
+    margin-bottom: var(--space-3);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+  }
+
+  .brand:hover {
+    background: var(--color-bg-hover);
+  }
+
+  .brand.active {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
   }
 
   nav {
