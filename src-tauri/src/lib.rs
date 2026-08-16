@@ -23,8 +23,8 @@ pub fn run() {
             accounts::commands::create_account,
             accounts::commands::update_account,
             accounts::commands::test_account,
-            accounts::commands::oidc_login,
-            accounts::commands::refresh_oidc_session,
+            accounts::commands::oauth_login,
+            accounts::commands::refresh_oauth_session,
             accounts::commands::delete_account,
         ])
         .run(tauri::generate_context!())

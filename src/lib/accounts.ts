@@ -21,10 +21,10 @@ export function testAccount(id: string): Promise<Account> {
   return invoke("test_account", { id });
 }
 
-export function oidcLogin(id: string): Promise<Account> {
-  return invoke("oidc_login", { id });
+export function oauthLogin(id: string): Promise<Account> {
+  return invoke("oauth_login", { id });
 }
 
-export function refreshOidcSession(id: string): Promise<Account> {
-  return invoke("refresh_oidc_session", { id });
+export function refreshOauthSession(id: string): Promise<Account> {
+  return invoke("refresh_oauth_session", { id });
 }

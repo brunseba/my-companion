@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Account } from "../types";
-  import { schemaFor } from "../types";
-  import { testAccount, oidcLogin, refreshOidcSession } from "../accounts";
+  import { schemaFor, isOAuthAccount } from "../types";
+  import { testAccount, oauthLogin, refreshOauthSession } from "../accounts";
   import { Zap, Pencil, Trash2, LogIn, RefreshCw } from "lucide-svelte";
 
   interface Props {
@@ -14,7 +14,7 @@
   let { account, onEdit, onDelete, onTested }: Props = $props();
 
   const providerLabel = $derived(schemaFor(account.provider)?.label ?? account.provider);
-  const isOidc = $derived(account.provider === "oidc");
+  const showOAuthActions = $derived(isOAuthAccount(account));
   const sessionExpired = $derived(
     account.session_expires_at !== null && new Date(account.session_expires_at).getTime() < Date.now(),
   );
@@ -48,13 +48,13 @@
       </div>
     </div>
     <div class="actions">
-      {#if isOidc}
+      {#if showOAuthActions}
         {#if account.session_expires_at}
           <button
             class="icon-button"
             title={busyKind === "refresh" ? "Refreshing…" : "Refresh session"}
             aria-label="Refresh session"
-            onclick={() => run("refresh", () => refreshOidcSession(account.id))}
+            onclick={() => run("refresh", () => refreshOauthSession(account.id))}
             disabled={busy}
           >
             <RefreshCw size={16} class={busyKind === "refresh" ? "busy" : ""} />
@@ -64,7 +64,7 @@
             class="icon-button"
             title={busyKind === "login" ? "Signing in…" : "Sign in"}
             aria-label="Sign in"
-            onclick={() => run("login", () => oidcLogin(account.id))}
+            onclick={() => run("login", () => oauthLogin(account.id))}
             disabled={busy}
           >
             <LogIn size={16} class={busyKind === "login" ? "busy" : ""} />
@@ -88,7 +88,7 @@
       </button>
     </div>
   </div>
-  {#if isOidc && account.session_expires_at}
+  {#if showOAuthActions && account.session_expires_at}
     <p class="session" class:expired={sessionExpired}>
       {sessionExpired ? "Session expired at" : "Session expires"}
       {new Date(account.session_expires_at).toLocaleString()}

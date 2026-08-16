@@ -114,37 +114,42 @@ pub async fn test_account(app: AppHandle, state: State<'_, AccountsState>, id: S
 }
 
 #[tauri::command]
-pub async fn oidc_login(app: AppHandle, state: State<'_, AccountsState>, id: String) -> Result<Account, String> {
-    let config = oidc_config(&state, &id)?;
+pub async fn oauth_login(app: AppHandle, state: State<'_, AccountsState>, id: String) -> Result<Account, String> {
+    let (provider, config) = oauth_account(&state, &id)?;
     let existing_secret = secrets::get(&id)?.unwrap_or_else(|| serde_json::json!({}));
-    let result = providers::oidc_login(&app, &config, &existing_secret).await;
+    let result = providers::oauth_login(&app, &provider, &config, &existing_secret).await;
     apply_session_result(&app, &state, &id, result)
 }
 
 #[tauri::command]
-pub async fn refresh_oidc_session(
+pub async fn refresh_oauth_session(
     app: AppHandle,
     state: State<'_, AccountsState>,
     id: String,
 ) -> Result<Account, String> {
-    let config = oidc_config(&state, &id)?;
+    let (provider, config) = oauth_account(&state, &id)?;
     let existing_secret = secrets::get(&id)?.unwrap_or_else(|| serde_json::json!({}));
-    let result = providers::oidc_refresh(&config, &existing_secret).await;
+    let result = providers::oauth_refresh(&provider, &config, &existing_secret).await;
     apply_session_result(&app, &state, &id, result)
 }
 
-/// Looks up an account's config, checking it's actually an OIDC account -
-/// AWS/Azure/GCP/etc. don't have interactive sessions to sign into or refresh.
-fn oidc_config(state: &AccountsState, id: &str) -> Result<serde_json::Value, String> {
+/// Looks up an account's provider + config, checking it's actually set up for
+/// OAuth sign-in - a GitHub/GitLab/Jira/Confluence account using a plain
+/// token instead (or any of the machine-to-machine providers like AWS) has no
+/// interactive session to sign into or refresh.
+fn oauth_account(state: &AccountsState, id: &str) -> Result<(String, serde_json::Value), String> {
     let accounts = state.0.lock().unwrap();
     let account = accounts
         .iter()
         .find(|a| a.id == id)
         .ok_or_else(|| format!("no account with id {id}"))?;
-    if account.provider != "oidc" {
-        return Err(format!("'{}' accounts don't support interactive sessions", account.provider));
+    if !providers::is_oauth_account(&account.provider, &account.config) {
+        return Err(format!(
+            "'{}' accounts don't support interactive sign-in with their current auth method",
+            account.provider
+        ));
     }
-    Ok(account.config.clone())
+    Ok((account.provider.clone(), account.config.clone()))
 }
 
 /// Shared tail end of the login/refresh commands: persist the new session (or

@@ -12,7 +12,7 @@
 
   type Section = "accounts" | "history";
 
-  const categories: AccountCategory[] = ["ai", "csp", "k8s", "oidc"];
+  const categories: AccountCategory[] = ["ai", "csp", "k8s", "scm", "tracker", "oidc"];
 
   let activeSection = $state<Section>("accounts");
   let accounts = $state<Account[]>([]);

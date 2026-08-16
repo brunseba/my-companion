@@ -7,6 +7,8 @@ pub enum AccountCategory {
     Csp,
     K8s,
     Oidc,
+    Scm,
+    Tracker,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Account, AccountCategory } from "../types";
-  import { providersForCategory, schemaFor } from "../types";
+  import { providersForCategory, schemaFor, fieldsFor } from "../types";
   import { createAccount, updateAccount } from "../accounts";
 
   interface Props {
@@ -16,6 +16,7 @@
 
   let provider = $state(editing?.provider ?? providers[0]?.provider ?? "");
   let name = $state(editing?.name ?? "");
+  let authMethod = $state(String(editing?.config.auth_method ?? ""));
   let values = $state<Record<string, string>>(
     editing ? Object.fromEntries(Object.entries(editing.config).map(([k, v]) => [k, String(v ?? "")])) : {},
   );
@@ -23,6 +24,16 @@
   let saving = $state(false);
 
   const schema = $derived(schemaFor(provider));
+  const fields = $derived(schema ? fieldsFor(schema, authMethod) : []);
+
+  // Keeps authMethod pointing at a real option for whichever provider is
+  // currently selected - covers both the initial default and switching
+  // providers in the (non-editing) dropdown.
+  $effect(() => {
+    if (schema?.authMethods && !schema.authMethods.some((m) => m.id === authMethod)) {
+      authMethod = schema.authMethods[0].id;
+    }
+  });
 
   function fieldValue(key: string): string {
     return values[key] ?? "";
@@ -39,7 +50,7 @@
 
     const config: Record<string, unknown> = {};
     const secret: Record<string, unknown> = {};
-    for (const field of schema.fields) {
+    for (const field of fields) {
       const raw = values[field.key];
       if (field.secret) {
         // Blank secret field on edit means "keep the existing value".
@@ -55,6 +66,9 @@
         error = `${field.label} is required`;
         return;
       }
+    }
+    if (schema.authMethods) {
+      config.auth_method = authMethod;
     }
     if (!name.trim()) {
       error = "Name is required";
@@ -118,36 +132,49 @@
         <p class="provider-label">{schema?.label}</p>
       {/if}
 
+      {#if schema?.authMethods}
+        {#if !editing}
+          <label>
+            Auth method
+            <select bind:value={authMethod}>
+              {#each schema.authMethods as method (method.id)}
+                <option value={method.id}>{method.label}</option>
+              {/each}
+            </select>
+          </label>
+        {:else}
+          <p class="provider-label">{schema.authMethods.find((m) => m.id === authMethod)?.label}</p>
+        {/if}
+      {/if}
+
       <label>
         Name
         <input type="text" bind:value={name} placeholder="e.g. Personal OpenAI key" />
       </label>
 
-      {#if schema}
-        {#each schema.fields as field (field.key)}
-          <label>
-            {field.label}{field.required ? " *" : ""}
-            {#if editing && field.secret}
-              <span class="hint">(leave blank to keep existing)</span>
-            {/if}
-            {#if field.kind === "textarea"}
-              <textarea
-                value={fieldValue(field.key)}
-                oninput={(e) => setFieldValue(field.key, (e.target as HTMLTextAreaElement).value)}
-                placeholder={field.placeholder}
-                rows="4"
-              ></textarea>
-            {:else}
-              <input
-                type={field.kind}
-                value={fieldValue(field.key)}
-                oninput={(e) => setFieldValue(field.key, (e.target as HTMLInputElement).value)}
-                placeholder={field.placeholder}
-              />
-            {/if}
-          </label>
-        {/each}
-      {/if}
+      {#each fields as field (field.key)}
+        <label>
+          {field.label}{field.required ? " *" : ""}
+          {#if editing && field.secret}
+            <span class="hint">(leave blank to keep existing)</span>
+          {/if}
+          {#if field.kind === "textarea"}
+            <textarea
+              value={fieldValue(field.key)}
+              oninput={(e) => setFieldValue(field.key, (e.target as HTMLTextAreaElement).value)}
+              placeholder={field.placeholder}
+              rows="4"
+            ></textarea>
+          {:else}
+            <input
+              type={field.kind}
+              value={fieldValue(field.key)}
+              oninput={(e) => setFieldValue(field.key, (e.target as HTMLInputElement).value)}
+              placeholder={field.placeholder}
+            />
+          {/if}
+        </label>
+      {/each}
 
       {#if error}
         <p class="error">{error}</p>
