@@ -2,8 +2,9 @@
   import { onMount } from "svelte";
   import { confirm } from "@tauri-apps/plugin-dialog";
   import { getVersion } from "@tauri-apps/api/app";
+  import { Wallet, History, Plus } from "lucide-svelte";
   import type { Account, AccountCategory } from "$lib/types";
-  import { CATEGORY_LABELS } from "$lib/types";
+  import { CATEGORY_LABELS, CATEGORY_ICONS } from "$lib/types";
   import { listAccounts, deleteAccount } from "$lib/accounts";
   import AccountCard from "$lib/components/AccountCard.svelte";
   import AccountForm from "$lib/components/AccountForm.svelte";
@@ -81,9 +82,11 @@
 
   <nav class="top-nav">
     <button class:active={activeSection === "accounts"} onclick={() => (activeSection = "accounts")}>
+      <Wallet size={16} />
       Accounts
     </button>
     <button class:active={activeSection === "history"} onclick={() => (activeSection = "history")}>
+      <History size={16} />
       History
     </button>
   </nav>
@@ -91,11 +94,13 @@
   {#if activeSection === "accounts"}
     <nav class="tabs">
       {#each categories as category (category)}
+        {@const Icon = CATEGORY_ICONS[category]}
         <button
           class="tab"
           class:active={activeCategory === category}
           onclick={() => (activeCategory = category)}
         >
+          <Icon size={15} />
           {CATEGORY_LABELS[category]}
         </button>
       {/each}
@@ -106,7 +111,7 @@
     {/if}
 
     <div class="toolbar">
-      <button onclick={openAdd}>+ Add account</button>
+      <button onclick={openAdd}><Plus size={16} /> Add account</button>
     </div>
 
     {#if loading}
@@ -177,6 +182,9 @@
   }
 
   .top-nav button {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     background: transparent;
     box-shadow: none;
     border: 1px solid transparent;
@@ -198,6 +206,9 @@
   }
 
   .tab {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     background: transparent;
     box-shadow: none;
     border: none;
@@ -252,6 +263,9 @@
   }
 
   button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
     border-radius: 8px;
     border: 1px solid transparent;
     padding: 0.6em 1.2em;

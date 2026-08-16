@@ -1,5 +1,9 @@
+import { Sparkles, Cloud, Boxes, ShieldCheck } from "lucide-svelte";
+
 export type AccountCategory = "ai" | "csp" | "k8s" | "oidc";
 export type AccountStatus = "unknown" | "valid" | "expired" | "error";
+// All lucide-svelte icons share this component shape, so any one of them works as the type.
+export type IconComponent = typeof Sparkles;
 
 export interface Account {
   id: string;
@@ -136,6 +140,13 @@ export const CATEGORY_LABELS: Record<AccountCategory, string> = {
   csp: "Cloud",
   k8s: "Kubernetes",
   oidc: "OIDC",
+};
+
+export const CATEGORY_ICONS: Record<AccountCategory, IconComponent> = {
+  ai: Sparkles,
+  csp: Cloud,
+  k8s: Boxes,
+  oidc: ShieldCheck,
 };
 
 export function providersForCategory(category: AccountCategory): ProviderSchema[] {

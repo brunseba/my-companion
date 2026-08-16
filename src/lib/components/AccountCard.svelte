@@ -2,6 +2,7 @@
   import type { Account } from "../types";
   import { schemaFor } from "../types";
   import { testAccount, oidcLogin, refreshOidcSession } from "../accounts";
+  import { Zap, Pencil, Trash2, LogIn, RefreshCw } from "lucide-svelte";
 
   interface Props {
     account: Account;
@@ -18,17 +19,21 @@
     account.session_expires_at !== null && new Date(account.session_expires_at).getTime() < Date.now(),
   );
 
-  let busy = $state(false);
+  // Tracks *which* action is in flight (not just whether one is) so only that
+  // button's icon pulses, while every button stays disabled to avoid racing
+  // two actions against the same account.
+  let busyKind = $state<"test" | "login" | "refresh" | null>(null);
+  const busy = $derived(busyKind !== null);
 
-  async function run(action: () => Promise<Account>) {
-    busy = true;
+  async function run(kind: "test" | "login" | "refresh", action: () => Promise<Account>) {
+    busyKind = kind;
     try {
       const updated = await action();
       onTested(updated);
     } catch (e) {
       onTested({ ...account, status: "error", last_error: String(e) });
     } finally {
-      busy = false;
+      busyKind = null;
     }
   }
 </script>
@@ -45,20 +50,42 @@
     <div class="actions">
       {#if isOidc}
         {#if account.session_expires_at}
-          <button class="secondary" onclick={() => run(() => refreshOidcSession(account.id))} disabled={busy}>
-            {busy ? "Refreshing…" : "Refresh session"}
+          <button
+            class="icon-button"
+            title={busyKind === "refresh" ? "Refreshing…" : "Refresh session"}
+            aria-label="Refresh session"
+            onclick={() => run("refresh", () => refreshOidcSession(account.id))}
+            disabled={busy}
+          >
+            <RefreshCw size={16} class={busyKind === "refresh" ? "busy" : ""} />
           </button>
         {:else}
-          <button class="secondary" onclick={() => run(() => oidcLogin(account.id))} disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
+          <button
+            class="icon-button"
+            title={busyKind === "login" ? "Signing in…" : "Sign in"}
+            aria-label="Sign in"
+            onclick={() => run("login", () => oidcLogin(account.id))}
+            disabled={busy}
+          >
+            <LogIn size={16} class={busyKind === "login" ? "busy" : ""} />
           </button>
         {/if}
       {/if}
-      <button class="secondary" onclick={() => run(() => testAccount(account.id))} disabled={busy}>
-        {busy ? "Testing…" : "Test connection"}
+      <button
+        class="icon-button"
+        title={busyKind === "test" ? "Testing…" : "Test connection"}
+        aria-label="Test connection"
+        onclick={() => run("test", () => testAccount(account.id))}
+        disabled={busy}
+      >
+        <Zap size={16} class={busyKind === "test" ? "busy" : ""} />
       </button>
-      <button class="secondary" onclick={onEdit}>Edit</button>
-      <button class="secondary danger" onclick={onDelete}>Delete</button>
+      <button class="icon-button" title="Edit" aria-label="Edit" onclick={onEdit} disabled={busy}>
+        <Pencil size={16} />
+      </button>
+      <button class="icon-button danger" title="Delete" aria-label="Delete" onclick={onDelete} disabled={busy}>
+        <Trash2 size={16} />
+      </button>
     </div>
   </div>
   {#if isOidc && account.session_expires_at}
@@ -131,20 +158,42 @@
 
   .actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.35rem;
     flex-shrink: 0;
     flex-wrap: wrap;
   }
 
-  button.secondary {
+  .icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: transparent;
-    font-size: 0.85rem;
-    padding: 0.4em 0.8em;
+    box-shadow: none;
+    padding: 0.4em;
+    width: 2rem;
+    height: 2rem;
   }
 
-  button.danger {
+  .icon-button.danger {
     color: #d33;
+  }
+
+  .icon-button.danger:hover {
     border-color: rgba(221, 51, 51, 0.4);
+  }
+
+  .icon-button :global(.busy) {
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
   }
 
   .session {
