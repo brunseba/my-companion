@@ -7,10 +7,13 @@
   import { listAccounts, deleteAccount } from "$lib/accounts";
   import AccountCard from "$lib/components/AccountCard.svelte";
   import AccountForm from "$lib/components/AccountForm.svelte";
-  import ChangelogModal from "$lib/components/ChangelogModal.svelte";
+  import ChangelogList from "$lib/components/ChangelogList.svelte";
+
+  type Section = "accounts" | "history";
 
   const categories: AccountCategory[] = ["ai", "csp", "k8s", "oidc"];
 
+  let activeSection = $state<Section>("accounts");
   let accounts = $state<Account[]>([]);
   let activeCategory = $state<AccountCategory>("ai");
   let loading = $state(true);
@@ -18,7 +21,6 @@
   let formOpen = $state(false);
   let editingAccount = $state<Account | null>(null);
   let appVersion = $state("");
-  let changelogOpen = $state(false);
 
   const visibleAccounts = $derived(accounts.filter((a) => a.category === activeCategory));
 
@@ -75,58 +77,67 @@
 </script>
 
 <main class="container">
-  <h1>Accounts</h1>
+  <h1>my-companion</h1>
 
-  <nav class="tabs">
-    {#each categories as category (category)}
-      <button
-        class="tab"
-        class:active={activeCategory === category}
-        onclick={() => (activeCategory = category)}
-      >
-        {CATEGORY_LABELS[category]}
-      </button>
-    {/each}
+  <nav class="top-nav">
+    <button class:active={activeSection === "accounts"} onclick={() => (activeSection = "accounts")}>
+      Accounts
+    </button>
+    <button class:active={activeSection === "history"} onclick={() => (activeSection = "history")}>
+      History
+    </button>
   </nav>
 
-  {#if loadError}
-    <p class="error">{loadError}</p>
-  {/if}
-
-  <div class="toolbar">
-    <button onclick={openAdd}>+ Add account</button>
-  </div>
-
-  {#if loading}
-    <p class="muted">Loading…</p>
-  {:else if visibleAccounts.length === 0}
-    <p class="muted">No {CATEGORY_LABELS[activeCategory]} accounts yet.</p>
-  {:else}
-    <div class="list">
-      {#each visibleAccounts as account (account.id)}
-        <AccountCard
-          {account}
-          onEdit={() => openEdit(account)}
-          onDelete={() => handleDelete(account)}
-          onTested={handleTested}
-        />
+  {#if activeSection === "accounts"}
+    <nav class="tabs">
+      {#each categories as category (category)}
+        <button
+          class="tab"
+          class:active={activeCategory === category}
+          onclick={() => (activeCategory = category)}
+        >
+          {CATEGORY_LABELS[category]}
+        </button>
       {/each}
+    </nav>
+
+    {#if loadError}
+      <p class="error">{loadError}</p>
+    {/if}
+
+    <div class="toolbar">
+      <button onclick={openAdd}>+ Add account</button>
     </div>
+
+    {#if loading}
+      <p class="muted">Loading…</p>
+    {:else if visibleAccounts.length === 0}
+      <p class="muted">No {CATEGORY_LABELS[activeCategory]} accounts yet.</p>
+    {:else}
+      <div class="list">
+        {#each visibleAccounts as account (account.id)}
+          <AccountCard
+            {account}
+            onEdit={() => openEdit(account)}
+            onDelete={() => handleDelete(account)}
+            onTested={handleTested}
+          />
+        {/each}
+      </div>
+    {/if}
+  {:else}
+    <ChangelogList />
   {/if}
 
   {#if appVersion}
     <footer class="footer">
-      <button class="version" onclick={() => (changelogOpen = true)}>v{appVersion}</button>
+      <button class="version" onclick={() => (activeSection = "history")}>v{appVersion}</button>
     </footer>
   {/if}
 </main>
 
 {#if formOpen}
   <AccountForm category={activeCategory} editing={editingAccount} onClose={() => (formOpen = false)} onSaved={handleSaved} />
-{/if}
-
-{#if changelogOpen}
-  <ChangelogModal onClose={() => (changelogOpen = false)} />
 {/if}
 
 <style>
@@ -154,6 +165,29 @@
 
   h1 {
     margin-top: 0;
+    margin-bottom: 1.2rem;
+  }
+
+  .top-nav {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+  }
+
+  .top-nav button {
+    background: transparent;
+    box-shadow: none;
+    border: 1px solid transparent;
+    font-weight: 600;
+    opacity: 0.6;
+  }
+
+  .top-nav button.active {
+    opacity: 1;
+    border-color: rgba(128, 128, 128, 0.35);
+    background: rgba(128, 128, 128, 0.08);
   }
 
   .tabs {
