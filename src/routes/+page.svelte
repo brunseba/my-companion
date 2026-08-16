@@ -1,11 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { confirm } from "@tauri-apps/plugin-dialog";
+  import { getVersion } from "@tauri-apps/api/app";
   import type { Account, AccountCategory } from "$lib/types";
   import { CATEGORY_LABELS } from "$lib/types";
   import { listAccounts, deleteAccount } from "$lib/accounts";
   import AccountCard from "$lib/components/AccountCard.svelte";
   import AccountForm from "$lib/components/AccountForm.svelte";
+  import ChangelogModal from "$lib/components/ChangelogModal.svelte";
 
   const categories: AccountCategory[] = ["ai", "csp", "k8s", "oidc"];
 
@@ -15,6 +17,8 @@
   let loadError = $state("");
   let formOpen = $state(false);
   let editingAccount = $state<Account | null>(null);
+  let appVersion = $state("");
+  let changelogOpen = $state(false);
 
   const visibleAccounts = $derived(accounts.filter((a) => a.category === activeCategory));
 
@@ -64,7 +68,10 @@
     accounts = accounts.map((a) => (a.id === updated.id ? updated : a));
   }
 
-  onMount(refresh);
+  onMount(() => {
+    refresh();
+    getVersion().then((v) => (appVersion = v));
+  });
 </script>
 
 <main class="container">
@@ -106,10 +113,20 @@
       {/each}
     </div>
   {/if}
+
+  {#if appVersion}
+    <footer class="footer">
+      <button class="version" onclick={() => (changelogOpen = true)}>v{appVersion}</button>
+    </footer>
+  {/if}
 </main>
 
 {#if formOpen}
   <AccountForm category={activeCategory} editing={editingAccount} onClose={() => (formOpen = false)} onSaved={handleSaved} />
+{/if}
+
+{#if changelogOpen}
+  <ChangelogModal onClose={() => (changelogOpen = false)} />
 {/if}
 
 <style>
@@ -174,6 +191,26 @@
 
   .muted {
     opacity: 0.6;
+  }
+
+  .footer {
+    display: flex;
+    justify-content: center;
+    margin-top: 2.5rem;
+  }
+
+  .version {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    font-size: 0.8rem;
+    opacity: 0.5;
+    padding: 0.3em 0.6em;
+  }
+
+  .version:hover {
+    opacity: 0.85;
+    border-color: transparent;
   }
 
   .error {
