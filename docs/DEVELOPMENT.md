@@ -21,16 +21,21 @@ cargo check --manifest-path src-tauri/Cargo.toml   # type-check the Rust backend
 cargo build --manifest-path src-tauri/Cargo.toml    # build the Rust backend
 ```
 
-Note: `npm run tauri dev` opens a real native window, so it needs a display - it won't do anything useful in a headless/CI shell. `cargo check`/`cargo build` and `npm run check`/`npm run build` all work headlessly and are what to run to verify changes.
+Note: `npm run tauri dev` opens a real native window, so it needs a display - it won't do anything useful in a headless/CI shell. `cargo check`/`cargo build` and `npm run check`/`npm run build` all work headlessly and are what to run to verify changes. [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs exactly these two headless checks (`npm run check`, `npm run build`, `cargo check`) on every push and PR - if they pass locally, CI passes.
 
 ## Project structure
 
 ```
-src-tauri/src/accounts/     backend - see ARCHITECTURE.md#module-layout for the full breakdown
-src/lib/                    frontend - types.ts, accounts.ts, components/
-src/routes/+page.svelte     the whole app is one page (SvelteKit static/SPA mode)
-docs/                        this documentation
-scripts/version-updaters/    custom bump-file updaters for the release tooling (see RELEASING.md)
+src-tauri/src/               backend - see ARCHITECTURE.md#module-layout for the full breakdown
+  accounts/                   account CRUD, providers, OAuth
+  diagnostics.rs               app resource usage (RAM/CPU/disk)
+src/                          frontend - see ARCHITECTURE.md#module-layout for the full breakdown
+  app.css                      design tokens
+  lib/                          types, invoke() wrappers, shared state, components/
+  routes/                       +layout.svelte, +page.svelte (the whole app is one page)
+docs/                          this documentation
+scripts/version-updaters/       custom bump-file updaters for the release tooling (see RELEASING.md)
+.github/workflows/               CI (every push/PR) and Release (on a version tag) - see RELEASING.md
 ```
 
 ## Adding a new provider

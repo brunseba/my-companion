@@ -28,8 +28,24 @@ These four providers support either auth mode per account. Someone starting with
 
 ### See everything at a glance, grouped by kind
 
-The category tabs (AI / Cloud / Kubernetes / Source Control / Atlassian / OIDC) answer "what do I have configured for X" in one glance, with a status dot per account so a stale or broken credential is visible before it causes a failure somewhere else.
+The sidebar's category list (AI / Cloud / Kubernetes / Source Control / Atlassian / OIDC) answers "what do I have configured for X" in one glance, with a status dot per account so a stale or broken credential is visible before it causes a failure somewhere else.
+
+### Get the one-screen summary
+
+Clicking "my-companion" in the sidebar opens Overview: total account count, a status breakdown (valid / needs attention / untested), and a per-category grid you can click straight into. The answer to "is anything broken right now" without visiting every category individually.
+
+### Make the app look and start the way you want
+
+Settings covers the things that are about *you*, not your accounts: light/dark/system appearance (overriding the OS setting if you want), and which section opens when the app launches - useful if you live in Diagnostics or a specific category rather than the default Accounts view.
+
+### Notice the app itself misbehaving
+
+Diagnostics shows this app's own memory and CPU usage, live, plus how much disk space its data actually takes up. If the app starts feeling sluggish, this is where to check whether it's actually the culprit before going looking elsewhere.
+
+### Start over cleanly
+
+Settings' danger zone deletes every account - metadata and keychain secrets both - in one confirmed action. For when a fresh start is genuinely what's wanted, rather than deleting accounts one at a time.
 
 ### Know what version you're running, and what changed
 
-The version badge and History section (sourced from the same `CHANGELOG.md` the release tooling generates) mean there's never a question of "did I already get the fix for X" - the answer is in the app, not in a separate changelog file someone has to remember to check.
+The version badge and History section (sourced from the same `CHANGELOG.md` the release tooling generates, and published as real GitHub Releases with built app assets) mean there's never a question of "did I already get the fix for X" - the answer is in the app, not in a separate changelog file someone has to remember to check.

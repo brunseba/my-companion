@@ -27,6 +27,15 @@ The shared OAuth implementation ([`providers/oauth.rs`](../src-tauri/src/account
 - **Ephemeral local listener**: the redirect target is `http://127.0.0.1:<OS-assigned port>/callback` - a fresh port each time, bound only for the duration of one sign-in attempt (5-minute timeout), then closed. It never listens on a fixed or predictable port.
 - **Client secrets**, where a provider requires one (GitHub OAuth Apps, Atlassian 3LO), are stored the same way as any other secret - in the keychain, never in `config`.
 
+## Settings and Diagnostics commands
+
+Two commands added for the Settings page touch data but never secrets:
+
+- `app_data_info` returns the resolved `accounts.json` path and the keychain service name - filesystem/keychain *locations*, not their contents. Useful for troubleshooting ("where did my data go"), not a disclosure risk on its own.
+- `reset_all_data` is destructive (deletes every account's keychain secret and clears `accounts.json`) but requires the frontend to have already confirmed with the user via the same native dialog used for single-account delete - there's no silent or automatic path to it.
+
+`diagnostics::resource_usage` (the Diagnostics page) reports this process's own memory/CPU usage and the byte size of `accounts.json` and the app binary - sizes only, never content, and nothing about other processes or the system as a whole.
+
 ## Tauri capability scoping
 
 [`src-tauri/capabilities/default.json`](../src-tauri/capabilities/default.json) grants only what's actually used: `core:default` (window/app basics, including `getVersion()`), `opener:default` (needed to launch the system browser for OAuth), and `dialog:default` (native confirm dialogs - see below). No filesystem, shell-execution, or arbitrary-HTTP capability is granted to the frontend; all of that happens in Rust, behind the command surface.
