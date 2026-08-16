@@ -24,6 +24,13 @@
   );
 </script>
 
+<p class="intro">
+  my-companion centralizes credentials and sessions for the tools you use daily - AI providers, cloud
+  platforms, Kubernetes clusters, source control, and issue tracking - in one place. Store a key or sign in
+  once, confirm it still works with a real API call, and see at a glance what's configured and what needs
+  attention.
+</p>
+
 <div class="stats">
   <div class="stat">
     <Wallet size={18} />
@@ -68,6 +75,14 @@
 </div>
 
 <style>
+  .intro {
+    max-width: 640px;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: var(--space-6);
+  }
+
   .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
