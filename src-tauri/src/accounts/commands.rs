@@ -3,6 +3,7 @@ use super::providers;
 use super::secrets;
 use super::store::{self, AccountsState};
 use chrono::Utc;
+use serde::Serialize;
 use tauri::{AppHandle, State};
 use uuid::Uuid;
 
@@ -198,5 +199,35 @@ pub fn delete_account(app: AppHandle, state: State<AccountsState>, id: String) -
         return Err(format!("no account with id {id}"));
     }
     secrets::delete(&id)?;
+    store::save(&app, &accounts)
+}
+
+#[derive(Serialize)]
+pub struct DataInfo {
+    accounts_file: String,
+    keychain_service: String,
+}
+
+/// Read-only info for the Settings page's "Data & storage" panel - where
+/// things actually live on disk / in the keychain, for troubleshooting.
+#[tauri::command]
+pub fn app_data_info(app: AppHandle) -> Result<DataInfo, String> {
+    let accounts_file = store::accounts_file(&app)?;
+    Ok(DataInfo {
+        accounts_file: accounts_file.display().to_string(),
+        keychain_service: secrets::SERVICE.to_string(),
+    })
+}
+
+/// Settings page "danger zone" - deletes every account's keychain secret and
+/// clears accounts.json. Irreversible; the frontend is responsible for
+/// confirming with the user before calling this.
+#[tauri::command]
+pub fn reset_all_data(app: AppHandle, state: State<AccountsState>) -> Result<(), String> {
+    let mut accounts = state.0.lock().unwrap();
+    for account in accounts.iter() {
+        secrets::delete(&account.id)?;
+    }
+    accounts.clear();
     store::save(&app, &accounts)
 }

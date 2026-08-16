@@ -7,19 +7,21 @@
   import { CATEGORY_LABELS } from "$lib/types";
   import { listAccounts, deleteAccount } from "$lib/accounts";
   import { toast } from "$lib/toast.svelte";
+  import { settings } from "$lib/settings.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
   import Overview from "$lib/components/Overview.svelte";
   import AccountCard from "$lib/components/AccountCard.svelte";
   import AccountForm from "$lib/components/AccountForm.svelte";
   import ChangelogList from "$lib/components/ChangelogList.svelte";
+  import SettingsView from "$lib/components/Settings.svelte";
   import Button from "$lib/components/ui/Button.svelte";
   import Skeleton from "$lib/components/ui/Skeleton.svelte";
 
-  type Section = "overview" | "accounts" | "history";
+  type Section = "overview" | "accounts" | "history" | "settings";
 
   const categories: AccountCategory[] = ["ai", "csp", "k8s", "scm", "tracker", "oidc"];
 
-  let activeSection = $state<Section>("accounts");
+  let activeSection = $state<Section>(settings.defaultSection);
   let accounts = $state<Account[]>([]);
   let activeCategory = $state<AccountCategory>("ai");
   let loading = $state(true);
@@ -99,6 +101,7 @@
       activeCategory = category;
     }}
     onSelectHistory={() => (activeSection = "history")}
+    onSelectSettings={() => (activeSection = "settings")}
   />
 
   <main class="content">
@@ -136,11 +139,16 @@
           {/each}
         </div>
       {/if}
-    {:else}
+    {:else if activeSection === "history"}
       <div class="content-header">
         <h1>History</h1>
       </div>
       <ChangelogList />
+    {:else}
+      <div class="content-header">
+        <h1>Settings</h1>
+      </div>
+      <SettingsView onReset={refresh} />
     {/if}
   </main>
 </div>

@@ -26,6 +26,8 @@ pub fn run() {
             accounts::commands::oauth_login,
             accounts::commands::refresh_oauth_session,
             accounts::commands::delete_account,
+            accounts::commands::app_data_info,
+            accounts::commands::reset_all_data,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -51,8 +51,11 @@
   color-scheme: light dark;
 }
 
+/* Dark palette - applied when the OS is in dark mode (and the user hasn't
+   explicitly picked Light in Settings), and again explicitly below so a
+   manual Dark override wins regardless of the OS setting. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --color-bg: #19191c;
     --color-bg-elevated: #232327;
     --color-bg-subtle: #1f1f23;
@@ -68,6 +71,23 @@
     --color-success: #3ecf7e;
     --color-warning: #e0b23c;
   }
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #19191c;
+  --color-bg-elevated: #232327;
+  --color-bg-subtle: #1f1f23;
+  --color-bg-hover: rgba(255, 255, 255, 0.06);
+  --color-border: rgba(255, 255, 255, 0.09);
+  --color-text: #f2f2f4;
+  --color-text-muted: #9a9aa4;
+  --color-accent: #5b8def;
+  --color-accent-hover: #78a3f4;
+  --color-accent-soft: rgba(91, 141, 239, 0.16);
+  --color-danger: #f2666d;
+  --color-danger-soft: rgba(242, 102, 109, 0.16);
+  --color-success: #3ecf7e;
+  --color-warning: #e0b23c;
 }
 
 * {

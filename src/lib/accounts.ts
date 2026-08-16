@@ -28,3 +28,16 @@ export function oauthLogin(id: string): Promise<Account> {
 export function refreshOauthSession(id: string): Promise<Account> {
   return invoke("refresh_oauth_session", { id });
 }
+
+export interface DataInfo {
+  accounts_file: string;
+  keychain_service: string;
+}
+
+export function getAppDataInfo(): Promise<DataInfo> {
+  return invoke("app_data_info");
+}
+
+export function resetAllData(): Promise<void> {
+  return invoke("reset_all_data");
+}

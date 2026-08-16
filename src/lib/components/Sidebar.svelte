@@ -1,17 +1,18 @@
 <script lang="ts">
-  import { Wallet, History } from "lucide-svelte";
+  import { Wallet, History, Settings } from "lucide-svelte";
   import type { AccountCategory } from "../types";
   import { CATEGORY_LABELS, CATEGORY_ICONS } from "../types";
 
   interface Props {
     categories: AccountCategory[];
-    activeSection: "overview" | "accounts" | "history";
+    activeSection: "overview" | "accounts" | "history" | "settings";
     activeCategory: AccountCategory;
     appVersion: string;
     onSelectOverview: () => void;
     onSelectAccounts: () => void;
     onSelectCategory: (category: AccountCategory) => void;
     onSelectHistory: () => void;
+    onSelectSettings: () => void;
   }
 
   let {
@@ -23,6 +24,7 @@
     onSelectAccounts,
     onSelectCategory,
     onSelectHistory,
+    onSelectSettings,
   }: Props = $props();
 </script>
 
@@ -54,6 +56,11 @@
     <button class="section" class:active={activeSection === "history"} onclick={onSelectHistory}>
       <History size={16} />
       History
+    </button>
+
+    <button class="section" class:active={activeSection === "settings"} onclick={onSelectSettings}>
+      <Settings size={16} />
+      Settings
     </button>
   </nav>
 

@@ -8,7 +8,9 @@ use tauri::{AppHandle, Manager};
 /// this app deals with (dozens of accounts, not thousands).
 pub struct AccountsState(pub Mutex<Vec<Account>>);
 
-fn accounts_file(app: &AppHandle) -> Result<PathBuf, String> {
+/// Exposed (not just used internally) so the Settings page can show the user
+/// exactly where their account metadata lives on disk.
+pub fn accounts_file(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app
         .path()
         .app_data_dir()

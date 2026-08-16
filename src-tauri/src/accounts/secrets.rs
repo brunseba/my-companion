@@ -1,8 +1,9 @@
 use keyring::Entry;
 
 /// Keychain "service" name accounts are stored under; each account's secret
-/// payload is keyed by its own id within this service.
-const SERVICE: &str = "com.brun_s.my-companion.accounts";
+/// payload is keyed by its own id within this service. Exposed so the
+/// Settings page can show the user where secrets actually live.
+pub const SERVICE: &str = "com.brun_s.my-companion.accounts";
 
 pub fn set(id: &str, value: &serde_json::Value) -> Result<(), String> {
     let entry = Entry::new(SERVICE, id).map_err(|e| e.to_string())?;
