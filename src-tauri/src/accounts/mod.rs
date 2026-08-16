@@ -14,6 +14,9 @@ use tauri::AppHandle;
 #[allow(unused_imports)] // re-exported for later phases (events, session refresh) to reference
 pub use model::Account;
 pub use store::AccountsState;
+/// Exposed crate-wide (not just within `accounts`) so `diagnostics` can report
+/// the account data file's size without reaching into `store`'s internals.
+pub(crate) use store::accounts_file;
 
 pub fn init_state(app: &AppHandle) -> AccountsState {
     AccountsState(Mutex::new(store::load(app)))

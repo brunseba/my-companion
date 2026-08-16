@@ -13,11 +13,12 @@
   import AccountCard from "$lib/components/AccountCard.svelte";
   import AccountForm from "$lib/components/AccountForm.svelte";
   import ChangelogList from "$lib/components/ChangelogList.svelte";
+  import Diagnostics from "$lib/components/Diagnostics.svelte";
   import SettingsView from "$lib/components/Settings.svelte";
   import Button from "$lib/components/ui/Button.svelte";
   import Skeleton from "$lib/components/ui/Skeleton.svelte";
 
-  type Section = "overview" | "accounts" | "history" | "settings";
+  type Section = "overview" | "accounts" | "history" | "diagnostics" | "settings";
 
   const categories: AccountCategory[] = ["ai", "csp", "k8s", "scm", "tracker", "oidc"];
 
@@ -101,6 +102,7 @@
       activeCategory = category;
     }}
     onSelectHistory={() => (activeSection = "history")}
+    onSelectDiagnostics={() => (activeSection = "diagnostics")}
     onSelectSettings={() => (activeSection = "settings")}
   />
 
@@ -144,6 +146,11 @@
         <h1>History</h1>
       </div>
       <ChangelogList />
+    {:else if activeSection === "diagnostics"}
+      <div class="content-header">
+        <h1>Diagnostics</h1>
+      </div>
+      <Diagnostics />
     {:else}
       <div class="content-header">
         <h1>Settings</h1>

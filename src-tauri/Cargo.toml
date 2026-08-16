@@ -39,4 +39,5 @@ base64 = "0.22"
 sha2 = "0.10"
 url = "2.5.8"
 tokio = { version = "1.53.1", features = ["rt"] }
+sysinfo = "0.39.6"
 

@@ -1,4 +1,5 @@
 mod accounts;
+mod diagnostics;
 
 use tauri::Manager;
 
@@ -15,6 +16,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             app.manage(accounts::init_state(app.handle()));
+            app.manage(diagnostics::ResourceMonitor::new());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -28,6 +30,7 @@ pub fn run() {
             accounts::commands::delete_account,
             accounts::commands::app_data_info,
             accounts::commands::reset_all_data,
+            diagnostics::resource_usage,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
