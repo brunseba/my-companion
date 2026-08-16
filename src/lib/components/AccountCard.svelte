@@ -3,6 +3,7 @@
   import { schemaFor, isOAuthAccount } from "../types";
   import { testAccount, oauthLogin, refreshOauthSession } from "../accounts";
   import { Zap, Pencil, Trash2, LogIn, RefreshCw } from "lucide-svelte";
+  import Button from "./ui/Button.svelte";
 
   interface Props {
     account: Account;
@@ -50,42 +51,45 @@
     <div class="actions">
       {#if showOAuthActions}
         {#if account.session_expires_at}
-          <button
-            class="icon-button"
+          <Button
+            variant="ghost"
+            size="icon"
             title={busyKind === "refresh" ? "Refreshing…" : "Refresh session"}
             aria-label="Refresh session"
             onclick={() => run("refresh", () => refreshOauthSession(account.id))}
             disabled={busy}
           >
             <RefreshCw size={16} class={busyKind === "refresh" ? "busy" : ""} />
-          </button>
+          </Button>
         {:else}
-          <button
-            class="icon-button"
+          <Button
+            variant="ghost"
+            size="icon"
             title={busyKind === "login" ? "Signing in…" : "Sign in"}
             aria-label="Sign in"
             onclick={() => run("login", () => oauthLogin(account.id))}
             disabled={busy}
           >
             <LogIn size={16} class={busyKind === "login" ? "busy" : ""} />
-          </button>
+          </Button>
         {/if}
       {/if}
-      <button
-        class="icon-button"
+      <Button
+        variant="ghost"
+        size="icon"
         title={busyKind === "test" ? "Testing…" : "Test connection"}
         aria-label="Test connection"
         onclick={() => run("test", () => testAccount(account.id))}
         disabled={busy}
       >
         <Zap size={16} class={busyKind === "test" ? "busy" : ""} />
-      </button>
-      <button class="icon-button" title="Edit" aria-label="Edit" onclick={onEdit} disabled={busy}>
+      </Button>
+      <Button variant="ghost" size="icon" title="Edit" aria-label="Edit" onclick={onEdit} disabled={busy}>
         <Pencil size={16} />
-      </button>
-      <button class="icon-button danger" title="Delete" aria-label="Delete" onclick={onDelete} disabled={busy}>
+      </Button>
+      <Button variant="danger" size="icon" title="Delete" aria-label="Delete" onclick={onDelete} disabled={busy}>
         <Trash2 size={16} />
-      </button>
+      </Button>
     </div>
   </div>
   {#if showOAuthActions && account.session_expires_at}
@@ -103,86 +107,81 @@
   .card {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
-    padding: 0.8rem 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(128, 128, 128, 0.25);
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-elevated);
+    transition:
+      border-color var(--duration-fast) var(--ease-out),
+      box-shadow var(--duration-fast) var(--ease-out);
+  }
+
+  .card:hover {
+    border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+    box-shadow: var(--shadow-sm);
   }
 
   .row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
+    gap: var(--space-2);
     flex-wrap: wrap;
   }
 
   .info {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
+    gap: var(--space-3);
     text-align: left;
     min-width: 0;
   }
 
   .status {
-    width: 0.6rem;
-    height: 0.6rem;
+    width: 0.55rem;
+    height: 0.55rem;
     border-radius: 50%;
     flex-shrink: 0;
-    background: #999;
+    background: var(--color-text-muted);
+    transition: background-color var(--duration-base) var(--ease-out);
   }
 
   .status.valid {
-    background: #2ea043;
+    background: var(--color-success);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success) 18%, transparent);
   }
 
   .status.expired {
-    background: #d4a72c;
+    background: var(--color-warning);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-warning) 18%, transparent);
   }
 
   .status.error {
-    background: #d33;
+    background: var(--color-danger);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 18%, transparent);
   }
 
   .name {
     margin: 0;
     font-weight: 600;
+    font-size: 0.92rem;
   }
 
   .provider {
     margin: 0;
-    font-size: 0.85rem;
-    opacity: 0.7;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
   }
 
   .actions {
     display: flex;
-    gap: 0.35rem;
+    gap: 2px;
     flex-shrink: 0;
     flex-wrap: wrap;
   }
 
-  .icon-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    box-shadow: none;
-    padding: 0.4em;
-    width: 2rem;
-    height: 2rem;
-  }
-
-  .icon-button.danger {
-    color: #d33;
-  }
-
-  .icon-button.danger:hover {
-    border-color: rgba(221, 51, 51, 0.4);
-  }
-
-  .icon-button :global(.busy) {
+  .actions :global(.busy) {
     animation: pulse 1s ease-in-out infinite;
   }
 
@@ -198,20 +197,19 @@
 
   .session {
     margin: 0;
-    font-size: 0.8rem;
-    opacity: 0.7;
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
     text-align: left;
   }
 
   .session.expired {
-    color: #d4a72c;
-    opacity: 1;
+    color: var(--color-warning);
   }
 
   .error {
     margin: 0;
-    font-size: 0.8rem;
-    color: #d33;
+    font-size: 0.78rem;
+    color: var(--color-danger);
     text-align: left;
     word-break: break-word;
   }

@@ -2,6 +2,8 @@
   import type { Account, AccountCategory } from "../types";
   import { providersForCategory, schemaFor, fieldsFor } from "../types";
   import { createAccount, updateAccount } from "../accounts";
+  import Modal from "./ui/Modal.svelte";
+  import Button from "./ui/Button.svelte";
 
   interface Props {
     category: AccountCategory;
@@ -101,169 +103,133 @@
   }
 </script>
 
-<div
-  class="backdrop"
-  role="button"
-  tabindex="-1"
-  onclick={onClose}
-  onkeydown={(e) => e.key === "Escape" && onClose()}
->
-  <div
-    class="modal"
-    role="dialog"
-    aria-modal="true"
-    tabindex="-1"
-    onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.stopPropagation()}
-  >
-    <h2>{editing ? "Edit account" : "Add account"}</h2>
+<Modal title={editing ? "Edit account" : "Add account"} {onClose}>
+  <form onsubmit={submit}>
+    {#if !editing}
+      <label>
+        Provider
+        <select bind:value={provider}>
+          {#each providers as p (p.provider)}
+            <option value={p.provider}>{p.label}</option>
+          {/each}
+        </select>
+      </label>
+    {:else}
+      <p class="static-label">{schema?.label}</p>
+    {/if}
 
-    <form onsubmit={submit}>
+    {#if schema?.authMethods}
       {#if !editing}
         <label>
-          Provider
-          <select bind:value={provider}>
-            {#each providers as p (p.provider)}
-              <option value={p.provider}>{p.label}</option>
+          Auth method
+          <select bind:value={authMethod}>
+            {#each schema.authMethods as method (method.id)}
+              <option value={method.id}>{method.label}</option>
             {/each}
           </select>
         </label>
       {:else}
-        <p class="provider-label">{schema?.label}</p>
+        <p class="static-label">{schema.authMethods.find((m) => m.id === authMethod)?.label}</p>
       {/if}
+    {/if}
 
-      {#if schema?.authMethods}
-        {#if !editing}
-          <label>
-            Auth method
-            <select bind:value={authMethod}>
-              {#each schema.authMethods as method (method.id)}
-                <option value={method.id}>{method.label}</option>
-              {/each}
-            </select>
-          </label>
-        {:else}
-          <p class="provider-label">{schema.authMethods.find((m) => m.id === authMethod)?.label}</p>
-        {/if}
-      {/if}
+    <label>
+      Name
+      <input type="text" bind:value={name} placeholder="e.g. Personal OpenAI key" />
+    </label>
 
+    {#each fields as field (field.key)}
       <label>
-        Name
-        <input type="text" bind:value={name} placeholder="e.g. Personal OpenAI key" />
+        {field.label}{field.required ? " *" : ""}
+        {#if editing && field.secret}
+          <span class="hint">(leave blank to keep existing)</span>
+        {/if}
+        {#if field.kind === "textarea"}
+          <textarea
+            value={fieldValue(field.key)}
+            oninput={(e) => setFieldValue(field.key, (e.target as HTMLTextAreaElement).value)}
+            placeholder={field.placeholder}
+            rows="4"
+          ></textarea>
+        {:else}
+          <input
+            type={field.kind}
+            value={fieldValue(field.key)}
+            oninput={(e) => setFieldValue(field.key, (e.target as HTMLInputElement).value)}
+            placeholder={field.placeholder}
+          />
+        {/if}
       </label>
+    {/each}
 
-      {#each fields as field (field.key)}
-        <label>
-          {field.label}{field.required ? " *" : ""}
-          {#if editing && field.secret}
-            <span class="hint">(leave blank to keep existing)</span>
-          {/if}
-          {#if field.kind === "textarea"}
-            <textarea
-              value={fieldValue(field.key)}
-              oninput={(e) => setFieldValue(field.key, (e.target as HTMLTextAreaElement).value)}
-              placeholder={field.placeholder}
-              rows="4"
-            ></textarea>
-          {:else}
-            <input
-              type={field.kind}
-              value={fieldValue(field.key)}
-              oninput={(e) => setFieldValue(field.key, (e.target as HTMLInputElement).value)}
-              placeholder={field.placeholder}
-            />
-          {/if}
-        </label>
-      {/each}
+    {#if error}
+      <p class="error">{error}</p>
+    {/if}
 
-      {#if error}
-        <p class="error">{error}</p>
-      {/if}
-
-      <div class="actions">
-        <button type="button" class="secondary" onclick={onClose}>Cancel</button>
-        <button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</button>
-      </div>
-    </form>
-  </div>
-</div>
+    <div class="actions">
+      <Button variant="secondary" onclick={onClose}>Cancel</Button>
+      <Button variant="primary" type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+    </div>
+  </form>
+</Modal>
 
 <style>
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-  }
-
-  .modal {
-    background: var(--surface, #fff);
-    color: inherit;
-    border-radius: 10px;
-    padding: 1.5rem;
-    width: min(420px, 90vw);
-    max-height: 85vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  }
-
-  h2 {
-    margin-top: 0;
-  }
-
   form {
     display: flex;
     flex-direction: column;
-    gap: 0.9rem;
+    gap: var(--space-4);
   }
 
   label {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    font-size: 0.9rem;
-    text-align: left;
+    gap: var(--space-1);
+    font-size: 0.86rem;
+    font-weight: 500;
   }
 
   .hint {
     font-weight: 400;
-    opacity: 0.6;
+    color: var(--color-text-muted);
     font-size: 0.8rem;
   }
 
   input,
   select,
   textarea {
-    border-radius: 6px;
-    border: 1px solid rgba(128, 128, 128, 0.4);
-    padding: 0.5em 0.7em;
-    font-size: 0.95em;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    padding: 0.55em 0.7em;
+    font-size: 0.9rem;
     font-family: inherit;
-    background: transparent;
-    color: inherit;
+    background: var(--color-bg);
+    color: var(--color-text);
+    transition: border-color var(--duration-fast) var(--ease-out);
   }
 
-  .provider-label {
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  .static-label {
     margin: 0;
     font-weight: 600;
+    font-size: 0.9rem;
   }
 
   .error {
-    color: #d33;
+    color: var(--color-danger);
     margin: 0;
+    font-size: 0.85rem;
   }
 
   .actions {
     display: flex;
     justify-content: flex-end;
-    gap: 0.6rem;
-    margin-top: 0.5rem;
-  }
-
-  button.secondary {
-    background: transparent;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
   }
 </style>

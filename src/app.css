@@ -1,0 +1,103 @@
+/* Design tokens - the single source of truth for color, spacing, radius, and
+   shadow across the app. Components should reference these variables rather
+   than hardcoding values, so the whole app stays visually consistent and
+   dark mode stays a one-place change. */
+
+:root {
+  /* Color - light (default) */
+  --color-bg: #fafafa;
+  --color-bg-elevated: #ffffff;
+  --color-bg-subtle: #f1f1f4;
+  --color-bg-hover: rgba(0, 0, 0, 0.04);
+  --color-border: #e3e3e8;
+  --color-text: #18181b;
+  --color-text-muted: #6b6b75;
+  --color-accent: #396cd8;
+  --color-accent-hover: #2f5ab8;
+  --color-accent-soft: rgba(57, 108, 216, 0.1);
+  --color-danger: #d4373f;
+  --color-danger-soft: rgba(212, 55, 63, 0.1);
+  --color-success: #22a55e;
+  --color-warning: #b8860b;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.18);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Inter", Avenir, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #19191c;
+    --color-bg-elevated: #232327;
+    --color-bg-subtle: #1f1f23;
+    --color-bg-hover: rgba(255, 255, 255, 0.06);
+    --color-border: rgba(255, 255, 255, 0.09);
+    --color-text: #f2f2f4;
+    --color-text-muted: #9a9aa4;
+    --color-accent: #5b8def;
+    --color-accent-hover: #78a3f4;
+    --color-accent-soft: rgba(91, 141, 239, 0.16);
+    --color-danger: #f2666d;
+    --color-danger-soft: rgba(242, 102, 109, 0.16);
+    --color-success: #3ecf7e;
+    --color-warning: #e0b23c;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+}
