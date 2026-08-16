@@ -6,13 +6,20 @@ export interface Release {
   body: string;
 }
 
-// `commit-and-tag-version` only ever writes this exact heading shape for a
-// real tagged release ("## 1.2.3 (2026-08-16)"). Anything else in the file
-// (prose, a manually-added "Unreleased" section, etc.) is excluded by simply
-// not matching this pattern - so what we show is tag history, not commit history.
+// commit-and-tag-version links a release heading to its previous tag once one
+// exists ("## [1.2.3](compare-url) (date)"), and leaves it plain otherwise
+// ("## 1.2.3 (date)", e.g. --first-release). Unwrap the link first so a
+// single simple pattern below can match either shape.
+const VERSION_LINK = /\[(\d+\.\d+\.\d+(?:-[\w.]+)?)\]\([^)]*\)/g;
+
+// `commit-and-tag-version` only ever writes this heading shape for a real
+// tagged release. Anything else in the file (prose, a manually-added
+// "Unreleased" section, etc.) is excluded by simply not matching this pattern
+// - so what we show is tag history, not commit history.
 const RELEASE_HEADING = /^## (\d+\.\d+\.\d+(?:-[\w.]+)?) \((\d{4}-\d{2}-\d{2})\)$/gm;
 
-export function parseReleases(markdown: string): Release[] {
+export function parseReleases(rawMarkdown: string): Release[] {
+  const markdown = rawMarkdown.replaceAll(VERSION_LINK, "$1");
   const matches = [...markdown.matchAll(RELEASE_HEADING)];
   return matches.map((match, index) => {
     const start = match.index! + match[0].length;
@@ -26,7 +33,7 @@ export function parseReleases(markdown: string): Release[] {
 }
 
 function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 /** Turns a release's body (a small, known subset of Markdown) into safe HTML. */
