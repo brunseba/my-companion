@@ -1,16 +1,17 @@
 <script lang="ts">
-  import { Wallet, History, Activity, Settings } from "lucide-svelte";
+  import { Wallet, MessageSquare, History, Activity, Settings } from "lucide-svelte";
   import type { AccountCategory } from "../types";
   import { CATEGORY_LABELS, CATEGORY_ICONS } from "../types";
 
   interface Props {
     categories: AccountCategory[];
-    activeSection: "overview" | "accounts" | "history" | "diagnostics" | "settings";
+    activeSection: "overview" | "accounts" | "chat" | "history" | "diagnostics" | "settings";
     activeCategory: AccountCategory;
     appVersion: string;
     onSelectOverview: () => void;
     onSelectAccounts: () => void;
     onSelectCategory: (category: AccountCategory) => void;
+    onSelectChat: () => void;
     onSelectHistory: () => void;
     onSelectDiagnostics: () => void;
     onSelectSettings: () => void;
@@ -24,6 +25,7 @@
     onSelectOverview,
     onSelectAccounts,
     onSelectCategory,
+    onSelectChat,
     onSelectHistory,
     onSelectDiagnostics,
     onSelectSettings,
@@ -54,6 +56,11 @@
         {/each}
       </ul>
     {/if}
+
+    <button class="section" class:active={activeSection === "chat"} onclick={onSelectChat}>
+      <MessageSquare size={16} />
+      Chat
+    </button>
 
     <button class="section" class:active={activeSection === "history"} onclick={onSelectHistory}>
       <History size={16} />

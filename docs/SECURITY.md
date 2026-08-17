@@ -27,6 +27,12 @@ The shared OAuth implementation ([`providers/oauth.rs`](../src-tauri/src/account
 - **Ephemeral local listener**: the redirect target is `http://127.0.0.1:<OS-assigned port>/callback` - a fresh port each time, bound only for the duration of one sign-in attempt (5-minute timeout), then closed. It never listens on a fixed or predictable port.
 - **Client secrets**, where a provider requires one (GitHub OAuth Apps, Atlassian 3LO), are stored the same way as any other secret - in the keychain, never in `config`.
 
+## Chat
+
+`send_message` reads the account's API key from the keychain the same way `test_account` does ([`accounts::get_account_secret`](../src-tauri/src/accounts/mod.rs), never exposed to the frontend) and sends it straight to the provider's own HTTPS API from Rust - the key never appears in a Tauri command's return value or an emitted event, only the streamed reply text does.
+
+Conversation content itself, though, is **not** treated as a secret - it's stored in plain JSON (`conversations.json`), the same way account metadata is. That's a deliberate line: an API key is a credential that grants access to something; a chat message is product data, like an account's name or region. If that distinction matters for what you're discussing, keep in mind `conversations.json` sits on disk unencrypted, same as `accounts.json`.
+
 ## Settings and Diagnostics commands
 
 Two commands added for the Settings page touch data but never secrets:

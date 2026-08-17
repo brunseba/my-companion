@@ -26,6 +26,10 @@ An OAuth account shows its session's expiry right on the card. Once it's passed,
 
 These four providers support either auth mode per account. Someone starting with a quick personal access token can later add an OAuth-based account for the same service instead (auth method is fixed per account, chosen at creation - switching means adding a new account with the other method).
 
+### Put a stored AI credential to actual use
+
+An OpenAI or Anthropic account isn't just something to validate and forget - Chat lets you start a real conversation with it directly, streamed token-by-token, without opening a browser tab or copying the key anywhere else. Multiple conversations, each pinned to whichever account (and model) you started it with, persist across restarts.
+
 ### See everything at a glance, grouped by kind
 
 The sidebar's category list (AI / Cloud / Kubernetes / Source Control / Atlassian / OIDC) answers "what do I have configured for X" in one glance, with a status dot per account so a stale or broken credential is visible before it causes a failure somewhere else.

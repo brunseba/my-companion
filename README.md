@@ -10,6 +10,7 @@ Built with [Tauri 2](https://tauri.app) (Rust backend, native window) and [Svelt
 - **Secrets in the OS keychain** - never written to disk in plain text, never sent back to the frontend after creation.
 - **Live validation** ("Test connection") - a real, read-only API call per provider, not just a stored-credential check.
 - **OAuth sign-in** for GitHub, GitLab, Jira, Confluence, and OIDC - full authorization-code + PKCE flow via the system browser, with session refresh. GitHub/GitLab/Jira/Confluence also support plain token auth as an alternative, chosen per account.
+- **Chat** - stream a real conversation with any configured OpenAI or Anthropic account, no browser tab needed. Conversations persist across restarts.
 - **Overview**: total account count, a status breakdown, and a per-category grid - one click from anywhere via the sidebar.
 - **Diagnostics**: the app's own live memory/CPU usage and on-disk footprint, not the whole system.
 - **Settings**: appearance (light/dark/system), which section opens on launch, where your data actually lives, and a reset-everything danger zone.

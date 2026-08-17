@@ -13,12 +13,13 @@
   import AccountCard from "$lib/components/AccountCard.svelte";
   import AccountForm from "$lib/components/AccountForm.svelte";
   import ChangelogList from "$lib/components/ChangelogList.svelte";
+  import Chat from "$lib/components/Chat.svelte";
   import Diagnostics from "$lib/components/Diagnostics.svelte";
   import SettingsView from "$lib/components/Settings.svelte";
   import Button from "$lib/components/ui/Button.svelte";
   import Skeleton from "$lib/components/ui/Skeleton.svelte";
 
-  type Section = "overview" | "accounts" | "history" | "diagnostics" | "settings";
+  type Section = "overview" | "accounts" | "chat" | "history" | "diagnostics" | "settings";
 
   const categories: AccountCategory[] = ["ai", "csp", "k8s", "scm", "tracker", "oidc"];
 
@@ -101,6 +102,7 @@
       activeSection = "accounts";
       activeCategory = category;
     }}
+    onSelectChat={() => (activeSection = "chat")}
     onSelectHistory={() => (activeSection = "history")}
     onSelectDiagnostics={() => (activeSection = "diagnostics")}
     onSelectSettings={() => (activeSection = "settings")}
@@ -141,6 +143,17 @@
           {/each}
         </div>
       {/if}
+    {:else if activeSection === "chat"}
+      <div class="content-header">
+        <h1>Chat</h1>
+      </div>
+      <Chat
+        {accounts}
+        onAddAccount={() => {
+          activeSection = "accounts";
+          activeCategory = "ai";
+        }}
+      />
     {:else if activeSection === "history"}
       <div class="content-header">
         <h1>History</h1>

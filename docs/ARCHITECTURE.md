@@ -7,8 +7,8 @@ my-companion is a Tauri 2 app: a native window hosting a SvelteKit frontend, bac
 ```mermaid
 flowchart LR
     subgraph Frontend["Frontend (WebView) - SvelteKit / Svelte 5"]
-        Sidebar["Sidebar.svelte\nOverview / Accounts / History / Diagnostics / Settings"]
-        UI["Per-section views\nOverview, AccountCard/AccountForm, ChangelogList,\nDiagnostics, Settings"]
+        Sidebar["Sidebar.svelte\nOverview / Accounts / Chat / History / Diagnostics / Settings"]
+        UI["Per-section views\nOverview, AccountCard/AccountForm, Chat,\nChangelogList, Diagnostics, Settings"]
         Types["lib/types.ts\nprovider field schemas"]
         Prefs[("localStorage\ntheme, default section")]
         Sidebar --> UI
@@ -22,13 +22,18 @@ flowchart LR
         Secrets["accounts::secrets\nkeyring wrapper"]
         Providers["accounts::providers\nvalidate / oauth_login / oauth_refresh"]
         Diagnostics["diagnostics\nresource_usage (sysinfo)"]
+        ChatCmds["chat::commands\nsend_message (SSE streaming)"]
         Commands --> Store
         Commands --> Secrets
         Commands --> Providers
+        ChatCmds --> Store
+        ChatCmds --> Secrets
     end
 
     UI -- "invoke()" --> Commands
     UI -- "invoke()" --> Diagnostics
+    UI -- "invoke()" --> ChatCmds
+    ChatCmds -- "chat:delta events" --> UI
     Commands -- "Account (no secrets)" --> UI
     Diagnostics -- "RAM / CPU / disk footprint" --> UI
 
@@ -36,6 +41,8 @@ flowchart LR
     Secrets -- "one entry per account id" --> Keychain[("OS Keychain")]
     Providers -- "HTTPS" --> APIs[("Provider APIs\nOpenAI, AWS, GitHub, ...")]
     Providers -- "system browser" --> Browser[("OAuth authorize page")]
+    ChatCmds -- "conversations.json" --> DataDir
+    ChatCmds -- "HTTPS (SSE)" --> AIAPIs[("OpenAI / Anthropic\nchat completions")]
 ```
 
 ## The secrets boundary
@@ -72,6 +79,12 @@ src-tauri/src/
       oidc.rs, gitlab.rs, github.rs, atlassian.rs, jira.rs, confluence.rs
       openai.rs, anthropic.rs, aws.rs, azure.rs, gcp.rs, scaleway.rs, kubeconfig.rs
   diagnostics.rs             resource_usage command (sysinfo) - the app's own RAM/CPU/disk use
+  chat/
+    mod.rs                    wires the submodules together, init_state()
+    model.rs                  Conversation, ChatMessage, CreateConversationInput
+    store.rs                  conversations.json persistence, ChatState (Mutex<Vec<Conversation>>)
+    stream.rs                  SSE streaming + provider request-shape differences (OpenAI/Anthropic)
+    commands.rs                list/create/delete_conversation, send_message
 
 src/
   routes/
@@ -82,15 +95,17 @@ src/
   lib/
     types.ts                   Account/provider types + PROVIDER_SCHEMAS (drives the dynamic form)
     accounts.ts                 invoke() wrappers (accounts CRUD, test, oauth, data info/reset)
+    chat.ts                      invoke() wrappers + chat:delta event listener
     diagnostics.ts               invoke() wrapper + byte-formatting for resource_usage
     changelog.ts                 parses CHANGELOG.md (bundled via a Vite ?raw import) for History
     settings.svelte.ts            theme + default-landing-section, localStorage-backed
     toast.svelte.ts                notification queue (Svelte 5 module-state pattern)
     components/
-      Sidebar.svelte              Overview/Accounts+categories/History/Diagnostics/Settings nav
+      Sidebar.svelte              Overview/Accounts+categories/Chat/History/Diagnostics/Settings nav
       Overview.svelte              stats + per-category grid
       AccountCard.svelte           one account: status, test/edit/delete/sign-in/refresh
       AccountForm.svelte           add/edit modal, built dynamically from PROVIDER_SCHEMAS
+      Chat.svelte                   conversation list + message thread + streaming composer
       ChangelogList.svelte         renders parsed release history
       Diagnostics.svelte            live RAM/CPU/disk, polled every 2s
       Settings.svelte                appearance, default section, data info, reset
@@ -100,15 +115,16 @@ src/
 
 ## Storage
 
-Three separate stores, none of them overlapping in what they hold:
+Four separate stores, none of them overlapping in what they hold:
 
 - **Metadata** - a single JSON file at `<app data dir>/accounts.json`, loaded into an in-memory `Mutex<Vec<Account>>` at startup ([`store::load`](../src-tauri/src/accounts/store.rs)) and rewritten in full on every create/update/delete ([`store::save`](../src-tauri/src/accounts/store.rs)). Fine at the scale this app deals with (tens of accounts, not thousands).
 - **Secrets** - the OS keychain (`keyring` crate; Keychain on macOS), one entry per account under the service name `com.brun_s.my-companion.accounts`. [`secrets::merge`](../src-tauri/src/accounts/secrets.rs) does a shallow merge so an OAuth login can add a `session` sub-object without disturbing a stored `client_secret`.
+- **Conversations** - `<app data dir>/conversations.json`, same load-all/rewrite-all pattern as accounts, via [`chat::store`](../src-tauri/src/chat/store.rs). Message content lives here in plain JSON, same as account metadata - it's product data, not a secret, so it doesn't belong in the keychain (see [`SECURITY.md`](SECURITY.md) for what that implies).
 - **UI preferences** - theme and default landing section live in the browser's `localStorage`, not Rust at all ([`lib/settings.svelte.ts`](../src/lib/settings.svelte.ts)). They're pure display state with no bearing on account data or secrets, so there's no reason for the backend to own them.
 
 ## Command surface
 
-Account commands live in [`accounts::commands`](../src-tauri/src/accounts/commands.rs); the one resource-monitoring command lives in [`diagnostics`](../src-tauri/src/diagnostics.rs). All are registered in [`lib.rs`](../src-tauri/src/lib.rs):
+Account commands live in [`accounts::commands`](../src-tauri/src/accounts/commands.rs); resource monitoring in [`diagnostics`](../src-tauri/src/diagnostics.rs); chat in [`chat::commands`](../src-tauri/src/chat/commands.rs). All are registered in [`lib.rs`](../src-tauri/src/lib.rs):
 
 | Command | Purpose |
 |---|---|
@@ -122,6 +138,8 @@ Account commands live in [`accounts::commands`](../src-tauri/src/accounts/comman
 | `app_data_info` | Read-only: resolved `accounts.json` path + keychain service name, for Settings. |
 | `reset_all_data` | Deletes every account's keychain secret and clears `accounts.json`. Irreversible. |
 | `diagnostics::resource_usage` | This process's RSS memory, CPU%, and its own on-disk footprint. |
+| `chat::list/create/delete_conversation` | Conversation CRUD, mirroring the accounts commands' shape. |
+| `chat::send_message` | Appends the user message, streams a reply (emitting `chat:delta` events as it arrives), appends and returns the finished assistant message. |
 
 ## The OAuth flow
 
@@ -151,6 +169,32 @@ sequenceDiagram
 ```
 
 The listener accepts exactly one request (or times out after 5 minutes), validates the `state` parameter to guard against CSRF, and is torn down immediately after - it only exists for the duration of a single sign-in.
+
+## Chat streaming
+
+Chat reuses whichever AI account (OpenAI or Anthropic) a conversation was started with - there's no separate "chat account" concept, just the existing account's stored API key read at send-time via `accounts::get_account_secret`. This is the one place the backend talks to the frontend outside the normal request/response shape of a command: `send_message` is a single `invoke()` call, but the reply arrives as a stream of `chat:delta` events (one per SSE chunk) followed by the command's own return value once the stream ends.
+
+```mermaid
+sequenceDiagram
+    participant UI as Chat.svelte
+    participant Cmd as send_message command
+    participant Stream as chat::stream
+    participant API as OpenAI / Anthropic
+
+    UI->>Cmd: invoke("send_message", { conversationId, content })
+    Cmd->>Cmd: append user message, save, read account + API key
+    Cmd->>Stream: stream_reply(provider, api_key, model, history)
+    Stream->>API: POST .../chat/completions or .../messages (stream: true)
+    loop for each SSE chunk
+        API-->>Stream: data: {...delta...}
+        Stream-->>UI: emit("chat:delta", { conversation_id, text })
+    end
+    Stream-->>Cmd: full assembled reply text
+    Cmd->>Cmd: append assistant message, save
+    Cmd-->>UI: resolves invoke() with the finished ChatMessage
+```
+
+`chat::stream` normalizes both providers' SSE event shapes behind one `consume_sse` helper - only the request body and the JSON path to the delta text (`choices[0].delta.content` for OpenAI, a `content_block_delta` event's `delta.text` for Anthropic) differ. The frontend appends deltas to a local `streamingText` buffer as they arrive (optimistic, not yet persisted) and replaces it with the real, saved `ChatMessage` once `invoke()` resolves.
 
 ## Frontend architecture
 

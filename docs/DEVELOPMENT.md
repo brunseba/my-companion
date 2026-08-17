@@ -29,6 +29,7 @@ Note: `npm run tauri dev` opens a real native window, so it needs a display - it
 src-tauri/src/               backend - see ARCHITECTURE.md#module-layout for the full breakdown
   accounts/                   account CRUD, providers, OAuth
   diagnostics.rs               app resource usage (RAM/CPU/disk)
+  chat/                         conversations + SSE-streamed replies via an existing AI account
 src/                          frontend - see ARCHITECTURE.md#module-layout for the full breakdown
   app.css                      design tokens
   lib/                          types, invoke() wrappers, shared state, components/
