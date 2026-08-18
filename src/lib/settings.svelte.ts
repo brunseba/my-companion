@@ -14,11 +14,11 @@ function readDefaultSection(): DefaultSection {
   return stored === "overview" || stored === "accounts" || stored === "history" ? stored : "accounts";
 }
 
-function applyTheme(theme: Theme) {
+function applyTheme(value: Theme) {
   if (typeof document === "undefined") return;
   // Empty string removes the attribute entirely, falling back to the OS
   // preference via the @media query in app.css.
-  document.documentElement.dataset.theme = theme === "system" ? "" : theme;
+  document.documentElement.dataset.theme = value === "system" ? "" : value;
 }
 
 let theme = $state<Theme>(readTheme());
