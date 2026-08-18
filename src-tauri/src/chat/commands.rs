@@ -34,14 +34,18 @@ pub fn create_conversation(
 }
 
 #[tauri::command]
-pub fn delete_conversation(app: AppHandle, state: State<ChatState>, id: String) -> Result<(), String> {
-    let mut conversations = state.0.lock().unwrap();
-    let before = conversations.len();
-    conversations.retain(|c| c.id != id);
-    if conversations.len() == before {
-        return Err(format!("no conversation with id {id}"));
+pub async fn delete_conversation(app: AppHandle, state: State<'_, ChatState>, id: String) -> Result<(), String> {
+    {
+        // Mutex guard dropped before the `.await` below, same rule as everywhere else.
+        let mut conversations = state.0.lock().unwrap();
+        let before = conversations.len();
+        conversations.retain(|c| c.id != id);
+        if conversations.len() == before {
+            return Err(format!("no conversation with id {id}"));
+        }
+        store::save(&app, &conversations)?;
     }
-    store::save(&app, &conversations)
+    crate::search::delete_conversation(&app, &id).await
 }
 
 /// First ~48 characters of the opening message, used as the conversation's
@@ -107,6 +111,10 @@ pub async fn send_message(
         (provider, base_url, model, api_key, history)
     };
 
+    if let Some(message) = history.last() {
+        spawn_index(&app, &conversation_id, message);
+    }
+
     let text = stream_reply(&app, &conversation_id, &provider, base_url.as_deref(), &api_key, &model, &history).await?;
 
     let mut conversations = chat_state.0.lock().unwrap();
@@ -123,5 +131,32 @@ pub async fn send_message(
     conversation.messages.push(assistant_message.clone());
     conversation.updated_at = Utc::now().to_rfc3339();
     store::save(&app, &conversations)?;
+
+    spawn_index(&app, &conversation_id, &assistant_message);
+
     Ok(assistant_message)
+}
+
+/// Embeds and indexes a message in the background - search indexing never
+/// adds latency to a chat reply, and a failure here (model still
+/// downloading, disk full, whatever) is logged and otherwise ignored rather
+/// than surfaced as a chat error.
+fn spawn_index(app: &AppHandle, conversation_id: &str, message: &ChatMessage) {
+    let app = app.clone();
+    let conversation_id = conversation_id.to_string();
+    let message = message.clone();
+    tauri::async_runtime::spawn(async move {
+        if let Err(e) = crate::search::index_message(
+            &app,
+            &message.id,
+            &conversation_id,
+            &message.role,
+            &message.content,
+            &message.created_at,
+        )
+        .await
+        {
+            eprintln!("failed to index message for search: {e}");
+        }
+    });
 }

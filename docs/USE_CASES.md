@@ -30,6 +30,10 @@ These four providers support either auth mode per account. Someone starting with
 
 An OpenAI or Anthropic account isn't just something to validate and forget - Chat lets you start a real conversation with it directly, streamed token-by-token, without opening a browser tab or copying the key anywhere else. Multiple conversations, each pinned to whichever account (and model) you started it with, persist across restarts.
 
+### Find that thing you asked about last week
+
+Chat's search box finds a past message by what it *means*, not just words it contains - ask "that time I asked about retry backoff" and get the actual conversation, even if you never typed those exact words. Fully offline: no API call, no extra account, no cost per search.
+
 ### See everything at a glance, grouped by kind
 
 The sidebar's category list (AI / Cloud / Kubernetes / Source Control / Atlassian / OIDC) answers "what do I have configured for X" in one glance, with a status dot per account so a stale or broken credential is visible before it causes a failure somewhere else.

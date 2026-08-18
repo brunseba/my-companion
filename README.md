@@ -11,6 +11,7 @@ Built with [Tauri 2](https://tauri.app) (Rust backend, native window) and [Svelt
 - **Live validation** ("Test connection") - a real, read-only API call per provider, not just a stored-credential check.
 - **OAuth sign-in** for GitHub, GitLab, Jira, Confluence, and OIDC - full authorization-code + PKCE flow via the system browser, with session refresh. GitHub/GitLab/Jira/Confluence also support plain token auth as an alternative, chosen per account.
 - **Chat** - stream a real conversation with any configured OpenAI or Anthropic account, no browser tab needed. Conversations persist across restarts.
+- **Semantic search** over chat history - find a past message by meaning, not just keyword, powered by a fully offline local embedding model (no API call, no account needed).
 - **Overview**: total account count, a status breakdown, and a per-category grid - one click from anywhere via the sidebar.
 - **Diagnostics**: the app's own live memory/CPU usage and on-disk footprint, not the whole system.
 - **Settings**: appearance (light/dark/system), which section opens on launch, where your data actually lives, and a reset-everything danger zone.
@@ -20,7 +21,7 @@ See [`docs/USE_CASES.md`](docs/USE_CASES.md) for the scenarios this is built aro
 
 ## Getting started
 
-Prerequisites: [Node.js](https://nodejs.org) and [Rust](https://www.rust-lang.org/tools/install) (via `rustup`). On macOS, Xcode Command Line Tools too.
+Prerequisites: [Node.js](https://nodejs.org), [Rust](https://www.rust-lang.org/tools/install) (via `rustup`), and `protoc` (`brew install protobuf` - LanceDB's build script needs it). On macOS, Xcode Command Line Tools too.
 
 ```sh
 npm install

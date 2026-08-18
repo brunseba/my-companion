@@ -7,6 +7,7 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how the pieces fit together; this p
 - [Node.js](https://nodejs.org) (npm)
 - [Rust](https://www.rust-lang.org/tools/install) via `rustup`
 - macOS: Xcode Command Line Tools (`xcode-select --install`)
+- `protoc` (`brew install protobuf`) - LanceDB's build script compiles its own `.proto` schemas; the backend won't compile without it. CI installs it too (see [`ci.yml`](../.github/workflows/ci.yml)).
 
 ## Commands
 
@@ -30,6 +31,7 @@ src-tauri/src/               backend - see ARCHITECTURE.md#module-layout for the
   accounts/                   account CRUD, providers, OAuth
   diagnostics.rs               app resource usage (RAM/CPU/disk)
   chat/                         conversations + SSE-streamed replies via an existing AI account
+  search/                        semantic search over chat messages (local embeddings + LanceDB)
 src/                          frontend - see ARCHITECTURE.md#module-layout for the full breakdown
   app.css                      design tokens
   lib/                          types, invoke() wrappers, shared state, components/

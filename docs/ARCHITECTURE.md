@@ -23,16 +23,19 @@ flowchart LR
         Providers["accounts::providers\nvalidate / oauth_login / oauth_refresh"]
         Diagnostics["diagnostics\nresource_usage (sysinfo)"]
         ChatCmds["chat::commands\nsend_message (SSE streaming)"]
+        SearchCmds["search::commands\nsearch_conversations"]
         Commands --> Store
         Commands --> Secrets
         Commands --> Providers
         ChatCmds --> Store
         ChatCmds --> Secrets
+        ChatCmds -. "spawned, best-effort" .-> SearchCmds
     end
 
     UI -- "invoke()" --> Commands
     UI -- "invoke()" --> Diagnostics
     UI -- "invoke()" --> ChatCmds
+    UI -- "invoke()" --> SearchCmds
     ChatCmds -- "chat:delta events" --> UI
     Commands -- "Account (no secrets)" --> UI
     Diagnostics -- "RAM / CPU / disk footprint" --> UI
@@ -43,6 +46,8 @@ flowchart LR
     Providers -- "system browser" --> Browser[("OAuth authorize page")]
     ChatCmds -- "conversations.json" --> DataDir
     ChatCmds -- "HTTPS (SSE)" --> AIAPIs[("OpenAI / Anthropic\nchat completions")]
+    SearchCmds -- "local ONNX inference" --> Embed[("fastembed model\ncached under app data dir")]
+    SearchCmds -- "vectors + message text" --> VectorDB[("LanceDB\nsearch_index/")]
 ```
 
 ## The secrets boundary
@@ -84,7 +89,13 @@ src-tauri/src/
     model.rs                  Conversation, ChatMessage, CreateConversationInput
     store.rs                  conversations.json persistence, ChatState (Mutex<Vec<Conversation>>)
     stream.rs                  SSE streaming + provider request-shape differences (OpenAI/Anthropic)
-    commands.rs                list/create/delete_conversation, send_message
+    commands.rs                list/create/delete_conversation, send_message (also spawns indexing
+                                into `search` after each message, best-effort)
+  search/
+    mod.rs                    index_message() - embeds + inserts one message, called by chat
+    embed.rs                   fastembed wrapper (local ONNX model, lazily loaded)
+    store.rs                   lancedb wrapper: schema, insert, nearest-neighbor query
+    commands.rs                 search_conversations
 
 src/
   routes/
@@ -96,6 +107,7 @@ src/
     types.ts                   Account/provider types + PROVIDER_SCHEMAS (drives the dynamic form)
     accounts.ts                 invoke() wrappers (accounts CRUD, test, oauth, data info/reset)
     chat.ts                      invoke() wrappers + chat:delta event listener
+    search.ts                     invoke() wrapper for search_conversations
     diagnostics.ts               invoke() wrapper + byte-formatting for resource_usage
     changelog.ts                 parses CHANGELOG.md (bundled via a Vite ?raw import) for History
     settings.svelte.ts            theme + default-landing-section, localStorage-backed
@@ -105,7 +117,7 @@ src/
       Overview.svelte              stats + per-category grid
       AccountCard.svelte           one account: status, test/edit/delete/sign-in/refresh
       AccountForm.svelte           add/edit modal, built dynamically from PROVIDER_SCHEMAS
-      Chat.svelte                   conversation list + message thread + streaming composer
+      Chat.svelte                   conversation list + search box + message thread + streaming composer
       ChangelogList.svelte         renders parsed release history
       Diagnostics.svelte            live RAM/CPU/disk, polled every 2s
       Settings.svelte                appearance, default section, data info, reset
@@ -115,16 +127,17 @@ src/
 
 ## Storage
 
-Four separate stores, none of them overlapping in what they hold:
+Five separate stores, none of them overlapping in what they hold:
 
 - **Metadata** - a single JSON file at `<app data dir>/accounts.json`, loaded into an in-memory `Mutex<Vec<Account>>` at startup ([`store::load`](../src-tauri/src/accounts/store.rs)) and rewritten in full on every create/update/delete ([`store::save`](../src-tauri/src/accounts/store.rs)). Fine at the scale this app deals with (tens of accounts, not thousands).
 - **Secrets** - the OS keychain (`keyring` crate; Keychain on macOS), one entry per account under the service name `com.brun_s.my-companion.accounts`. [`secrets::merge`](../src-tauri/src/accounts/secrets.rs) does a shallow merge so an OAuth login can add a `session` sub-object without disturbing a stored `client_secret`.
 - **Conversations** - `<app data dir>/conversations.json`, same load-all/rewrite-all pattern as accounts, via [`chat::store`](../src-tauri/src/chat/store.rs). Message content lives here in plain JSON, same as account metadata - it's product data, not a secret, so it doesn't belong in the keychain (see [`SECURITY.md`](SECURITY.md) for what that implies).
+- **Search index** - `<app data dir>/search_index/`, a LanceDB dataset (one `messages` table: id/conversation id/role/content/embedding). A copy of message text lives here too, alongside its vector - see [`search::store`](../src-tauri/src/search/store.rs).
 - **UI preferences** - theme and default landing section live in the browser's `localStorage`, not Rust at all ([`lib/settings.svelte.ts`](../src/lib/settings.svelte.ts)). They're pure display state with no bearing on account data or secrets, so there's no reason for the backend to own them.
 
 ## Command surface
 
-Account commands live in [`accounts::commands`](../src-tauri/src/accounts/commands.rs); resource monitoring in [`diagnostics`](../src-tauri/src/diagnostics.rs); chat in [`chat::commands`](../src-tauri/src/chat/commands.rs). All are registered in [`lib.rs`](../src-tauri/src/lib.rs):
+Account commands live in [`accounts::commands`](../src-tauri/src/accounts/commands.rs); resource monitoring in [`diagnostics`](../src-tauri/src/diagnostics.rs); chat in [`chat::commands`](../src-tauri/src/chat/commands.rs); search in [`search::commands`](../src-tauri/src/search/commands.rs). All are registered in [`lib.rs`](../src-tauri/src/lib.rs):
 
 | Command | Purpose |
 |---|---|
@@ -138,8 +151,10 @@ Account commands live in [`accounts::commands`](../src-tauri/src/accounts/comman
 | `app_data_info` | Read-only: resolved `accounts.json` path + keychain service name, for Settings. |
 | `reset_all_data` | Deletes every account's keychain secret and clears `accounts.json`. Irreversible. |
 | `diagnostics::resource_usage` | This process's RSS memory, CPU%, and its own on-disk footprint. |
-| `chat::list/create/delete_conversation` | Conversation CRUD, mirroring the accounts commands' shape. |
-| `chat::send_message` | Appends the user message, streams a reply (emitting `chat:delta` events as it arrives), appends and returns the finished assistant message. |
+| `chat::list/create_conversation` | Conversation CRUD, mirroring the accounts commands' shape. |
+| `chat::delete_conversation` | Removes the conversation, then awaits removing its indexed messages from search too - not spawned, so both are gone by the time the command returns. |
+| `chat::send_message` | Appends the user message, streams a reply (emitting `chat:delta` events), appends and returns the finished assistant message; spawns background indexing for both messages. |
+| `search::search_conversations` | Embeds a query and returns the most similar indexed messages. |
 
 ## The OAuth flow
 
@@ -195,6 +210,18 @@ sequenceDiagram
 ```
 
 `chat::stream` normalizes both providers' SSE event shapes behind one `consume_sse` helper - only the request body and the JSON path to the delta text (`choices[0].delta.content` for OpenAI, a `content_block_delta` event's `delta.text` for Anthropic) differ. The frontend appends deltas to a local `streamingText` buffer as they arrive (optimistic, not yet persisted) and replaces it with the real, saved `ChatMessage` once `invoke()` resolves.
+
+## Semantic search
+
+Every chat message (user and assistant) gets indexed for search, entirely offline - no API call, no account needed:
+
+1. After `send_message` saves a message, it spawns a detached background task (`tauri::async_runtime::spawn`) calling `search::index_message`. This never blocks or can fail the chat reply itself - errors are logged and swallowed.
+2. `search::embed::embed_blocking` runs a local ONNX model ([`fastembed`](https://github.com/Anush008/fastembed-rs), the `BGESmallENV15` model - 384-dimension embeddings) inside `tokio::task::spawn_blocking`, since both loading the model (first call only; it's cached after) and running inference are CPU-bound, synchronous work that must never run directly on the async runtime.
+3. `search::store::insert` writes the message text, its embedding, and its `conversation_id`/`role` into a LanceDB table at `<app data dir>/search_index/`.
+
+`search_conversations(query)` is the reverse of the same path: embed the query text the same way, then LanceDB's `nearest_to` does an approximate nearest-neighbor search and returns the closest messages (with a `_distance` column - lower is more similar) for the frontend to rank and link back to their conversation.
+
+Only messages sent after this feature shipped are indexed - there is deliberately no backfill of pre-existing `conversations.json` data yet (check [`CHANGELOG.md`](../CHANGELOG.md) for when search shipped, if that matters for what's searchable).
 
 ## Frontend architecture
 

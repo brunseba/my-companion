@@ -33,6 +33,10 @@ The shared OAuth implementation ([`providers/oauth.rs`](../src-tauri/src/account
 
 Conversation content itself, though, is **not** treated as a secret - it's stored in plain JSON (`conversations.json`), the same way account metadata is. That's a deliberate line: an API key is a credential that grants access to something; a chat message is product data, like an account's name or region. If that distinction matters for what you're discussing, keep in mind `conversations.json` sits on disk unencrypted, same as `accounts.json`.
 
+## Semantic search
+
+Embedding happens entirely on-device (`fastembed`, a local ONNX model) - unlike Chat, no message content or query text is ever sent anywhere over the network for search to work. The search index (`search_index/`, a LanceDB dataset) is a second, separate copy of message text plus its vector, held under the same "not a secret, just product data" reasoning as `conversations.json` above - it's also unencrypted on disk. Deleting a conversation deletes its indexed messages too ([`chat::commands::delete_conversation`](../src-tauri/src/chat/commands.rs) awaits `search::delete_conversation` before returning, rather than leaving that to a background task) - so a deleted conversation stops being both visible and searchable in the same operation.
+
 ## Settings and Diagnostics commands
 
 Two commands added for the Settings page touch data but never secrets:

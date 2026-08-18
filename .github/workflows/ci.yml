@@ -24,6 +24,10 @@ jobs:
         with:
           workspaces: src-tauri
 
+      # LanceDB's build script compiles its own .proto schemas.
+      - name: Install protoc
+        run: brew install protobuf
+
       - name: Install frontend dependencies
         run: npm ci
 

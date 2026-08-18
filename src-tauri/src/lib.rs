@@ -1,6 +1,7 @@
 mod accounts;
 mod chat;
 mod diagnostics;
+mod search;
 
 use tauri::Manager;
 
@@ -19,6 +20,8 @@ pub fn run() {
             app.manage(accounts::init_state(app.handle()));
             app.manage(diagnostics::ResourceMonitor::new());
             app.manage(chat::init_state(app.handle()));
+            app.manage(search::Embedder::new());
+            app.manage(search::SearchIndex::new());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -37,6 +40,7 @@ pub fn run() {
             chat::commands::create_conversation,
             chat::commands::delete_conversation,
             chat::commands::send_message,
+            search::commands::search_conversations,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

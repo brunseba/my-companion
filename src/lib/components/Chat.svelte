@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { confirm } from "@tauri-apps/plugin-dialog";
-  import { Plus, Bot, SendHorizontal, Trash2 } from "lucide-svelte";
+  import { Plus, Bot, SendHorizontal, Trash2, Search } from "lucide-svelte";
   import type { Account } from "../types";
   import {
     listConversations,
@@ -12,6 +12,7 @@
     type Conversation,
     type ChatMessage,
   } from "../chat";
+  import { searchConversations, type SearchResult } from "../search";
   import { toast } from "../toast.svelte";
   import Button from "./ui/Button.svelte";
   import Modal from "./ui/Modal.svelte";
@@ -35,6 +36,11 @@
   let newChatModel = $state("");
   let threadEl = $state<HTMLDivElement | undefined>(undefined);
   let unlisten: (() => void) | undefined;
+
+  let searchQuery = $state("");
+  let searchResults = $state<SearchResult[]>([]);
+  let searching = $state(false);
+  let searchDebounce: ReturnType<typeof setTimeout> | undefined;
 
   const activeConversation = $derived(conversations.find((c) => c.id === activeId) ?? null);
 
@@ -64,6 +70,7 @@
 
   onDestroy(() => {
     unlisten?.();
+    clearTimeout(searchDebounce);
   });
 
   function openNewChat() {
@@ -106,6 +113,36 @@
     }
   }
 
+  function handleSearchInput() {
+    clearTimeout(searchDebounce);
+    if (!searchQuery.trim()) {
+      searchResults = [];
+      searching = false;
+      return;
+    }
+    searching = true;
+    searchDebounce = setTimeout(runSearch, 300);
+  }
+
+  async function runSearch() {
+    const query = searchQuery.trim();
+    try {
+      const results = await searchConversations(query);
+      // The debounced query may have changed while this was in flight.
+      if (query === searchQuery.trim()) searchResults = results;
+    } catch (e) {
+      toast.error(String(e));
+    } finally {
+      searching = false;
+    }
+  }
+
+  function jumpToResult(result: SearchResult) {
+    activeId = result.conversation_id;
+    searchQuery = "";
+    searchResults = [];
+  }
+
   async function handleSend(event: Event) {
     event.preventDefault();
     if (!activeConversation || !draft.trim() || sending) return;
@@ -145,7 +182,29 @@
       <Plus size={15} /> New chat
     </Button>
 
-    {#if conversations.length > 0}
+    <label class="search-box">
+      <Search size={14} />
+      <input type="text" bind:value={searchQuery} oninput={handleSearchInput} placeholder="Search conversations…" />
+    </label>
+
+    {#if searchQuery.trim()}
+      {#if searching}
+        <p class="search-status">Searching…</p>
+      {:else if searchResults.length === 0}
+        <p class="search-status">No matches.</p>
+      {:else}
+        <ul class="conv-list">
+          {#each searchResults as result (result.message_id)}
+            <li>
+              <button class="search-result" onclick={() => jumpToResult(result)}>
+                <span class="search-role">{result.role === "user" ? "You" : "Assistant"}</span>
+                <span class="search-snippet">{result.content}</span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    {:else if conversations.length > 0}
       <ul class="conv-list">
         {#each conversations as conversation (conversation.id)}
           <li class="conv-row">
@@ -249,6 +308,74 @@
     border-right: 1px solid var(--color-border);
     background: var(--color-bg-subtle);
     overflow-y: auto;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+  }
+
+  .search-box input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: var(--color-text);
+    font-size: 0.82rem;
+    padding: var(--space-1) 0;
+  }
+
+  .search-box input:focus {
+    outline: none;
+  }
+
+  .search-status {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    padding: var(--space-2);
+  }
+
+  .search-result {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: var(--radius-sm);
+    padding: var(--space-2);
+    cursor: pointer;
+  }
+
+  .search-result:hover {
+    background: var(--color-bg-hover);
+  }
+
+  .search-role {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-accent);
+  }
+
+  .search-snippet {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .conv-list {

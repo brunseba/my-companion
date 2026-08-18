@@ -39,6 +39,10 @@ rand = "0.8"
 base64 = "0.22"
 sha2 = "0.10"
 url = "2.5.8"
-tokio = { version = "1.53.1", features = ["rt"] }
+tokio = { version = "1.53.1", features = ["rt", "sync"] }
 sysinfo = "0.39.6"
+lancedb = "0.37.1"
+arrow-array = "58.4.0"
+arrow-schema = "58.4.0"
+fastembed = "6.0.0"
 
