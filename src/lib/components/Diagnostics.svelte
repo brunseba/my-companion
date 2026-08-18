@@ -1,13 +1,14 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { MemoryStick, Cpu, HardDrive } from "lucide-svelte";
-  import { getResourceUsage, formatBytes, type ResourceUsage } from "../diagnostics";
+  import { MemoryStick, Cpu, HardDrive, MessagesSquare, Hash, Search } from "lucide-svelte";
+  import { getResourceUsage, getActivityStats, formatBytes, type ResourceUsage, type ActivityStats } from "../diagnostics";
   import { toast } from "../toast.svelte";
 
   const POLL_MS = 2000;
   const HISTORY_LENGTH = 30;
 
   let usage = $state<ResourceUsage | null>(null);
+  let activity = $state<ActivityStats | null>(null);
   let memoryHistory = $state<number[]>([]);
   let cpuHistory = $state<number[]>([]);
   let timer: ReturnType<typeof setInterval> | undefined;
@@ -19,10 +20,11 @@
 
   async function poll() {
     try {
-      const next = await getResourceUsage();
-      usage = next;
-      memoryHistory = pushHistory(memoryHistory, next.memory_bytes);
-      cpuHistory = pushHistory(cpuHistory, next.cpu_percent);
+      const [nextUsage, nextActivity] = await Promise.all([getResourceUsage(), getActivityStats()]);
+      usage = nextUsage;
+      activity = nextActivity;
+      memoryHistory = pushHistory(memoryHistory, nextUsage.memory_bytes);
+      cpuHistory = pushHistory(cpuHistory, nextUsage.cpu_percent);
     } catch (e) {
       toast.error(String(e));
       if (timer) clearInterval(timer);
@@ -91,11 +93,23 @@
       <HardDrive size={16} />
       <span>Disk</span>
     </div>
-    {#if usage}
+    {#if usage && activity}
       <div class="disk-rows">
         <div class="disk-row">
           <span>accounts.json</span>
           <span class="disk-value">{formatBytes(usage.accounts_file_bytes)}</span>
+        </div>
+        <div class="disk-row">
+          <span>conversations.json</span>
+          <span class="disk-value">{formatBytes(activity.conversations_file_bytes)}</span>
+        </div>
+        <div class="disk-row">
+          <span>Search index</span>
+          <span class="disk-value">{formatBytes(activity.search_index_bytes)}</span>
+        </div>
+        <div class="disk-row">
+          <span>Embedding model</span>
+          <span class="disk-value">{formatBytes(activity.embedding_model_bytes)}</span>
         </div>
         <div class="disk-row">
           <span>App binary</span>
@@ -108,12 +122,44 @@
   </div>
 </div>
 
+<h2>Chat &amp; search activity</h2>
+<div class="grid">
+  <div class="card">
+    <div class="card-head">
+      <MessagesSquare size={16} />
+      <span>Conversations</span>
+    </div>
+    <p class="value">{activity ? activity.conversation_count : "—"}</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <Hash size={16} />
+      <span>Messages</span>
+    </div>
+    <p class="value">{activity ? activity.message_count : "—"}</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <Search size={16} />
+      <span>Indexed for search</span>
+    </div>
+    <p class="value">{activity ? activity.indexed_message_count : "—"}</p>
+  </div>
+</div>
+
 <style>
   .intro {
     color: var(--color-text-muted);
     font-size: 0.9rem;
     max-width: 640px;
     margin-bottom: var(--space-5);
+  }
+
+  h2 {
+    font-size: 0.95rem;
+    margin: var(--space-6) 0 var(--space-3);
   }
 
   .grid {

@@ -36,6 +36,7 @@ pub fn run() {
             accounts::commands::app_data_info,
             accounts::commands::reset_all_data,
             diagnostics::resource_usage,
+            diagnostics::activity_stats,
             chat::commands::list_conversations,
             chat::commands::create_conversation,
             chat::commands::delete_conversation,

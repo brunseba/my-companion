@@ -11,6 +11,19 @@ export function getResourceUsage(): Promise<ResourceUsage> {
   return invoke("resource_usage");
 }
 
+export interface ActivityStats {
+  conversation_count: number;
+  message_count: number;
+  conversations_file_bytes: number;
+  indexed_message_count: number;
+  search_index_bytes: number;
+  embedding_model_bytes: number;
+}
+
+export function getActivityStats(): Promise<ActivityStats> {
+  return invoke("activity_stats");
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   const units = ["KB", "MB", "GB"];

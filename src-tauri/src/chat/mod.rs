@@ -9,7 +9,7 @@ mod stream;
 use std::sync::Mutex;
 use tauri::AppHandle;
 
-pub use store::ChatState;
+pub use store::{conversations_file, ChatState};
 
 pub fn init_state(app: &AppHandle) -> ChatState {
     ChatState(Mutex::new(store::load(app)))

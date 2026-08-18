@@ -48,7 +48,7 @@ fn message_schema() -> Arc<Schema> {
     ]))
 }
 
-async fn table(app: &AppHandle, index: &SearchIndex) -> Result<Table, String> {
+async fn connection(app: &AppHandle, index: &SearchIndex) -> Result<Connection, String> {
     let mut guard = index.0.lock().await;
     if guard.is_none() {
         let dir = app
@@ -63,7 +63,11 @@ async fn table(app: &AppHandle, index: &SearchIndex) -> Result<Table, String> {
             .map_err(|e| format!("failed to open search index: {e}"))?;
         *guard = Some(connection);
     }
-    let connection = guard.as_ref().unwrap();
+    Ok(guard.as_ref().unwrap().clone())
+}
+
+async fn table(app: &AppHandle, index: &SearchIndex) -> Result<Table, String> {
+    let connection = connection(app, index).await?;
 
     let existing = connection
         .table_names()
@@ -83,6 +87,30 @@ async fn table(app: &AppHandle, index: &SearchIndex) -> Result<Table, String> {
             .await
             .map_err(|e| format!("failed to create search index table: {e}"))
     }
+}
+
+/// Number of indexed messages - for Diagnostics. Unlike `table()`, this never
+/// creates the table as a side effect: if nothing has been indexed yet, it's
+/// simply 0.
+pub async fn count(app: &AppHandle, index: &SearchIndex) -> Result<u64, String> {
+    let connection = connection(app, index).await?;
+    let existing = connection
+        .table_names()
+        .execute()
+        .await
+        .map_err(|e| format!("failed to list search index tables: {e}"))?;
+    if !existing.iter().any(|name| name == TABLE_NAME) {
+        return Ok(0);
+    }
+    let tbl = connection
+        .open_table(TABLE_NAME)
+        .execute()
+        .await
+        .map_err(|e| format!("failed to open search index table: {e}"))?;
+    tbl.count_rows(None)
+        .await
+        .map(|n| n as u64)
+        .map_err(|e| format!("failed to count indexed messages: {e}"))
 }
 
 fn record_batch(

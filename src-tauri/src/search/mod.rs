@@ -39,3 +39,9 @@ pub async fn delete_conversation(app: &AppHandle, conversation_id: &str) -> Resu
     let index = app.state::<SearchIndex>();
     store::delete_conversation(app, &index, conversation_id).await
 }
+
+/// Number of indexed messages - for Diagnostics.
+pub async fn count_indexed(app: &AppHandle) -> Result<u64, String> {
+    let index = app.state::<SearchIndex>();
+    store::count(app, &index).await
+}

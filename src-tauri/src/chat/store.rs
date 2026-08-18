@@ -6,7 +6,9 @@ use tauri::{AppHandle, Manager};
 
 pub struct ChatState(pub Mutex<Vec<Conversation>>);
 
-fn conversations_file(app: &AppHandle) -> Result<PathBuf, String> {
+/// Exposed (not just used internally) so Diagnostics can report the
+/// conversation data file's size - same reasoning as `accounts::accounts_file`.
+pub fn conversations_file(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app
         .path()
         .app_data_dir()

@@ -151,6 +151,7 @@ Account commands live in [`accounts::commands`](../src-tauri/src/accounts/comman
 | `app_data_info` | Read-only: resolved `accounts.json` path + keychain service name, for Settings. |
 | `reset_all_data` | Deletes every account's keychain secret and clears `accounts.json`. Irreversible. |
 | `diagnostics::resource_usage` | This process's RSS memory, CPU%, and its own on-disk footprint. |
+| `diagnostics::activity_stats` | Conversation/message counts, indexed-message count, and disk usage for `conversations.json`, the search index, and the embedding model cache. |
 | `chat::list/create_conversation` | Conversation CRUD, mirroring the accounts commands' shape. |
 | `chat::delete_conversation` | Removes the conversation, then awaits removing its indexed messages from search too - not spawned, so both are gone by the time the command returns. |
 | `chat::send_message` | Appends the user message, streams a reply (emitting `chat:delta` events), appends and returns the finished assistant message; spawns background indexing for both messages. |

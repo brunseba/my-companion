@@ -48,7 +48,7 @@ Settings covers the things that are about *you*, not your accounts: light/dark/s
 
 ### Notice the app itself misbehaving
 
-Diagnostics shows this app's own memory and CPU usage, live, plus how much disk space its data actually takes up. If the app starts feeling sluggish, this is where to check whether it's actually the culprit before going looking elsewhere.
+Diagnostics shows this app's own memory and CPU usage, live, plus how much disk space its data actually takes up - broken down per file (`accounts.json`, `conversations.json`, the search index, the embedding model cache), not just a single total. If the app starts feeling sluggish, or the data folder feels bigger than expected, this is where to check what's actually using it before going looking elsewhere. A second row shows how much Chat/search has actually accumulated: conversation count, message count, and how many of those messages are indexed for search.
 
 ### Start over cleanly
 
